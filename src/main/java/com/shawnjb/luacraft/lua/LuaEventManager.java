@@ -1,6 +1,7 @@
 package com.shawnjb.luacraft.lua;
 
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.ServerChatEvent;
 import net.minecraftforge.event.entity.EntityEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
@@ -16,7 +17,7 @@ public class LuaEventManager {
 
     private static final Object dynamicListener = new Object() {
         @SubscribeEvent
-        public void onAnyEvent(Object event) {
+        public void onAnyEvent(net.minecraftforge.fml.common.eventhandler.Event event) {
             String name = event.getClass().getSimpleName().replace("Event", "");
             List<LuaFunction> funcs = listeners.get(name);
             if (funcs != null) {
@@ -31,12 +32,22 @@ public class LuaEventManager {
             }
         }
 
-        private LuaValue wrapEvent(Object event) {
-            if (event instanceof EntityEvent) {
+        private LuaValue wrapEvent(net.minecraftforge.fml.common.eventhandler.Event event) {
+            if (event instanceof ServerChatEvent) {
+                ServerChatEvent chatEvent = (ServerChatEvent) event;
+                LuaTable t = new LuaTable();
+                t.set("player", new LuaPlayer(chatEvent.getPlayer()));
+                String msg = chatEvent.getMessage();
+                if (msg == null) {
+                    msg = "";
+                }
+                t.set("message", LuaValue.valueOf(msg));
+                t.set("username", LuaValue.valueOf(chatEvent.getUsername()));
+                return t;
+            } else if (event instanceof EntityEvent) {
                 EntityEvent entityEvent = (EntityEvent) event;
                 return new LuaEntity(entityEvent.getEntity());
-            }
-            else {
+            } else {
                 LuaTable luaEvent = new LuaTable();
                 luaEvent.set("eventName", LuaValue.valueOf(event.getClass().getSimpleName()));
                 luaEvent.set("eventObject", LuaValue.valueOf(event.toString()));

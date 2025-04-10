@@ -2,24 +2,24 @@ package com.shawnjb.luacraft.lua;
 
 import com.shawnjb.luacraft.docs.LuaDocRegistry;
 import com.shawnjb.luacraft.lua.api.LuaItemStack;
-import com.shawnjb.luacraft.lua.api.LuaVector3;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.EnumHand;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.ZeroArgFunction;
+import java.util.Arrays;
 
-import java.util.Collections;
-
-public class LuaPlayer extends LuaTable {
+public class LuaPlayer extends LuaEntity {
     private final EntityPlayer player;
 
     public LuaPlayer(EntityPlayer player) {
+        super(player);
         this.player = player;
 
         set("getName", new ZeroArgFunction() {
@@ -29,64 +29,10 @@ public class LuaPlayer extends LuaTable {
             }
         });
 
-        set("getHealth", new ZeroArgFunction() {
-            @Override
-            public LuaValue call() {
-                return LuaValue.valueOf(player.getHealth());
-            }
-        });
-
-        set("setHealth", new OneArgFunction() {
-            @Override
-            public LuaValue call(LuaValue arg) {
-                player.setHealth((float) arg.checkdouble());
-                return LuaValue.NIL;
-            }
-        });
-
         set("isOp", new ZeroArgFunction() {
             @Override
             public LuaValue call() {
                 return LuaValue.valueOf(player.canUseCommand(4, ""));
-            }
-        });
-
-        set("setFireTicks", new OneArgFunction() {
-            @Override
-            public LuaValue call(LuaValue arg) {
-                player.setFire(arg.checkint());
-                return LuaValue.NIL;
-            }
-        });
-
-        set("getMaxHealth", new ZeroArgFunction() {
-            @Override
-            public LuaValue call() {
-                return LuaValue.valueOf(player.getMaxHealth());
-            }
-        });
-
-        set("heal", new OneArgFunction() {
-            @Override
-            public LuaValue call(LuaValue arg) {
-                player.heal((float) arg.checkdouble());
-                return LuaValue.NIL;
-            }
-        });
-
-        set("damage", new OneArgFunction() {
-            @Override
-            public LuaValue call(LuaValue arg) {
-                player.attackEntityFrom(null, (float) arg.checkdouble());
-                return LuaValue.NIL;
-            }
-        });
-
-        set("kill", new ZeroArgFunction() {
-            @Override
-            public LuaValue call() {
-                player.setHealth(0);
-                return LuaValue.NIL;
             }
         });
 
@@ -109,8 +55,7 @@ public class LuaPlayer extends LuaTable {
                 ItemStack stack;
 
                 if (arg.isuserdata(LuaItemStack.class)) {
-                    stack = ((com.shawnjb.luacraft.lua.api.LuaItemStack) arg
-                            .checkuserdata(com.shawnjb.luacraft.lua.api.LuaItemStack.class)).getHandle();
+                    stack = ((LuaItemStack) arg.checkuserdata(LuaItemStack.class)).getHandle();
                 } else if (arg.isstring()) {
                     Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(arg.tojstring()));
                     if (item == null)
@@ -125,10 +70,47 @@ public class LuaPlayer extends LuaTable {
             }
         });
 
-        set("getPosition", new ZeroArgFunction() {
+        set("sendTellraw", new OneArgFunction() {
             @Override
-            public LuaValue call() {
-                return new LuaVector3(player.posX, player.posY, player.posZ);
+            public LuaValue call(LuaValue arg) {
+                String json = arg.checkjstring();
+                try {
+                    ITextComponent comp = ITextComponent.Serializer.fromJsonLenient(json);
+                    if (comp != null) {
+                        player.sendMessage(comp);
+                    } else {
+                        throw new IllegalArgumentException("Parsed component was null");
+                    }
+                } catch (Exception e) {
+                    player.sendMessage(new TextComponentString(json));
+                }
+                return LuaValue.NIL;
+            }
+        });
+
+        set("giveItem", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue arg) {
+                String id = arg.checkjstring();
+                LuaValue luaStack = com.shawnjb.luacraft.lua.api.LuaItemStack.of(id, 1);
+                if (luaStack == null) {
+                    return LuaValue.FALSE;
+                }
+                LuaItemStack stack = (LuaItemStack) luaStack.checkuserdata(LuaItemStack.class);
+                boolean success = player.inventory.addItemStackToInventory(stack.getHandle());
+                return LuaValue.valueOf(success);
+            }
+        });
+
+        set("giveItemStack", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue arg) {
+                if (!arg.isuserdata(LuaItemStack.class)) {
+                    return LuaValue.error("Expected LuaItemStack userdata");
+                }
+                LuaItemStack luaStack = (LuaItemStack) arg.checkuserdata(LuaItemStack.class);
+                boolean success = player.inventory.addItemStackToInventory(luaStack.getHandle());
+                return LuaValue.valueOf(success);
             }
         });
     }
@@ -139,92 +121,61 @@ public class LuaPlayer extends LuaTable {
 
     public static void registerDocs() {
         LuaDocRegistry.addClass("LuaPlayer");
-
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
                 "getName",
                 "Returns the name of the player.",
-                Collections.emptyList(),
-                Collections.singletonList(new LuaDocRegistry.Return("string", "The player's name")),
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("string", "The player's name")),
                 true));
-
-        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
-                "getHealth",
-                "Gets the player's current health.",
-                Collections.emptyList(),
-                Collections.singletonList(new LuaDocRegistry.Return("number", "Current health value")),
-                true));
-
-        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
-                "setHealth",
-                "Sets the player's health.",
-                Collections.singletonList(new LuaDocRegistry.Param("health", "number", "The new health value")),
-                Collections.emptyList(),
-                true));
-
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
                 "isOp",
                 "Checks if the player is an operator.",
-                Collections.emptyList(),
-                Collections.singletonList(new LuaDocRegistry.Return("boolean", "True if the player is op")),
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("boolean", "True if op")),
                 true));
-
-        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
-                "setFireTicks",
-                "Sets the player on fire for a specific number of ticks.",
-                Collections.singletonList(new LuaDocRegistry.Param("ticks", "number", "Number of ticks to burn")),
-                Collections.emptyList(),
-                true));
-
-        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
-                "getMaxHealth",
-                "Gets the player's maximum health.",
-                Collections.emptyList(),
-                Collections.singletonList(new LuaDocRegistry.Return("number", "The max health value")),
-                true));
-
-        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
-                "heal",
-                "Heals the player by the given amount.",
-                Collections.singletonList(new LuaDocRegistry.Param("amount", "number", "Amount to heal")),
-                Collections.emptyList(),
-                true));
-
-        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
-                "damage",
-                "Damages the player by the given amount.",
-                Collections.singletonList(new LuaDocRegistry.Param("amount", "number", "Amount to damage")),
-                Collections.emptyList(),
-                true));
-
-        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
-                "kill",
-                "Kills the player instantly.",
-                Collections.emptyList(),
-                Collections.emptyList(),
-                true));
-
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
                 "getHeldItem",
                 "Gets the name of the item held by the player.",
-                Collections.singletonList(new LuaDocRegistry.Param("hand", "string|nil",
-                        "The hand to check ('main' or 'off'). Defaults to 'main'.")),
-                Collections.singletonList(
-                        new LuaDocRegistry.Return("string|nil", "Name of the held item or nil if empty")),
+                Arrays.asList(new LuaDocRegistry.Param("hand", "string|nil", "The hand to check ('main' or 'off')")),
+                Arrays.asList(new LuaDocRegistry.Return("string|nil", "Held item name or nil if empty")),
                 true));
-
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
                 "addItem",
                 "Adds an item to the player's inventory.",
-                Collections.singletonList(new LuaDocRegistry.Param("item", "string|LuaItemStack",
-                        "The registry item ID or a LuaItemStack")),
-                Collections.singletonList(new LuaDocRegistry.Return("boolean", "True if added successfully")),
+                Arrays.asList(new LuaDocRegistry.Param("item", "string|LuaItemStack", "The item ID or LuaItemStack")),
+                Arrays.asList(new LuaDocRegistry.Return("boolean", "True if added successfully")),
                 true));
 
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
-                "getPosition",
-                "Gets the player's current position as a Vector3.",
-                Collections.emptyList(),
-                Collections.singletonList(new LuaDocRegistry.Return("Vector3", "The player's position as a vector")),
+                "sendTellraw",
+                "Sends a raw JSON-formatted chat message to the player. " +
+                        "Accepts JSON strings such as " +
+                        "'{\"rawtext\":[{\"text\":\"§aExample \"},{\"text\":\"§e§lText\"}]}' " +
+                        "or " +
+                        "'{\"rawtext\":[{\"text\":\"§aExample §e§lText\"}]}' " +
+                        "and falls back to plain text if the JSON is invalid.",
+                Arrays.asList(new LuaDocRegistry.Param("json", "string",
+                        "A raw JSON-formatted string representing the chat message")),
+                Arrays.asList(),
                 true));
+
+        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
+                "giveItem",
+                "Gives an item to the player's inventory using a registry ID or a LuaItemStack. " +
+                        "If a string is provided, it is treated as a registry ID and a single item is created. " +
+                        "Returns true if the item was successfully added.",
+                Arrays.asList(new LuaDocRegistry.Param("item", "string|LuaItemStack",
+                        "The registry ID of the item (e.g. 'minecraft:stone') or a LuaItemStack")),
+                Arrays.asList(new LuaDocRegistry.Return("boolean", "True if the item was successfully added")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
+                "giveItemStack",
+                "Adds a custom-created LuaItemStack to the player's inventory.",
+                Arrays.asList(new LuaDocRegistry.Param("itemStack", "LuaItemStack", "The item stack to add")),
+                Arrays.asList(new LuaDocRegistry.Return("boolean", "True if the item stack was added successfully")),
+                true));
+
+        LuaDocRegistry.inheritMethods("LuaEntity", "LuaPlayer");
     }
 }

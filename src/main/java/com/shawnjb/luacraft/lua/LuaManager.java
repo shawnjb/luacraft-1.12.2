@@ -6,6 +6,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
 import java.net.URL;
@@ -28,6 +29,32 @@ public class LuaManager {
 
     public static void init(File configDir) {
         globals = JsePlatform.standardGlobals();
+
+        globals.set("wait", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue arg) {
+                double seconds = arg.checkdouble();
+                try {
+                    Thread.sleep((long) (seconds * 1000));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return LuaValue.NIL;
+            }
+        });
+
+        globals.set("waitTicks", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue arg) {
+                int ticks = arg.checkint();
+                try {
+                    Thread.sleep(ticks * 50L);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return LuaValue.NIL;
+            }
+        });
 
         scriptsFolder = new File(configDir, "luacraft/scripts");
         autorunFolder = new File(scriptsFolder, "autorun");
@@ -131,7 +158,7 @@ public class LuaManager {
     }
 
     public static void runScript(String code, EntityPlayerMP sender) {
-        Globals context = JsePlatform.standardGlobals();
+        Globals context = globals;
         context.set("mc", new LuaMc(sender != null ? new LuaPlayer(sender) : null));
 
         try {
@@ -151,7 +178,7 @@ public class LuaManager {
                 builder.append(line).append("\n");
             }
 
-            Globals context = JsePlatform.standardGlobals();
+            Globals context = globals;
             context.set("mc", new LuaMc(sender != null ? new LuaPlayer(sender) : null));
 
             LuaValue chunk = context.load(builder.toString(), file.getName());

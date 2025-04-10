@@ -5,6 +5,9 @@
 ---@class mc
 mc = {}
 
+---@class LuaEntity
+local LuaEntity = {}
+
 ---@class LuaPlayer
 local LuaPlayer = {}
 
@@ -22,9 +25,6 @@ local LuaMaterial = {}
 
 ---@class LuaItemStack
 local LuaItemStack = {}
-
----@class LuaEntity
-local LuaEntity = {}
 
 ---@class LuaBlock
 local LuaBlock = {}
@@ -75,44 +75,71 @@ function mc.summonEntity(entityId, pos) end
 ---@return LuaItemStack @The created item stack or nil if invalid
 function mc.createItemStack(itemId, count) end
 
+---Returns the entity's internal ID.
+---@return number @The entity ID
+function LuaEntity:getId() end
+
+---Returns the entity's registry name/type.
+---@return string @Entity type name
+function LuaEntity:getType() end
+
+---Checks if the entity is a player.
+---@return boolean @True if player
+function LuaEntity:isPlayer() end
+
+---Instantly kills the entity.
+function LuaEntity:kill() end
+
+---Sets the position of the entity.
+---@param pos Vector3
+function LuaEntity:setPosition(pos) end
+
+---Sets the entity on fire for a specific number of ticks.
+---@param ticks number
+function LuaEntity:setFireTicks(ticks) end
+
+---Extinguishes fire on the entity.
+function LuaEntity:clearFire() end
+
+---Returns the current position of the entity. For players, returns a Vector3; for other entities, returns a table with x, y, and z fields.
+---@return Vector3|table @The entity's position
+function LuaEntity:getPosition() end
+
+---Gets the current health of the entity. Returns nil if the entity does not have a health attribute.
+---@return number|nil @The current health value or nil
+function LuaEntity:getHealth() end
+
+---Sets the entity's health to a specified value, if applicable.
+---@param health number
+function LuaEntity:setHealth(health) end
+
+---Retrieves the maximum health of the entity, if available.
+---@return number|nil @The maximum health value or nil
+function LuaEntity:getMaxHealth() end
+
+---Heals the entity by the specified amount, if applicable.
+---@param amount number
+function LuaEntity:heal(amount) end
+
+---Damages the entity by the specified amount, if applicable.
+---@param amount number
+function LuaEntity:damage(amount) end
+
+---Returns the world in which the entity resides. For player entities, this is the world the player is in.
+---@return LuaWorld @The world object where the entity is located
+function LuaEntity:getWorld() end
+
 ---Returns the name of the player.
 ---@return string @The player's name
 function LuaPlayer:getName() end
 
----Gets the player's current health.
----@return number @Current health value
-function LuaPlayer:getHealth() end
-
----Sets the player's health.
----@param health number
-function LuaPlayer:setHealth(health) end
-
 ---Checks if the player is an operator.
----@return boolean @True if the player is op
+---@return boolean @True if op
 function LuaPlayer:isOp() end
-
----Sets the player on fire for a specific number of ticks.
----@param ticks number
-function LuaPlayer:setFireTicks(ticks) end
-
----Gets the player's maximum health.
----@return number @The max health value
-function LuaPlayer:getMaxHealth() end
-
----Heals the player by the given amount.
----@param amount number
-function LuaPlayer:heal(amount) end
-
----Damages the player by the given amount.
----@param amount number
-function LuaPlayer:damage(amount) end
-
----Kills the player instantly.
-function LuaPlayer:kill() end
 
 ---Gets the name of the item held by the player.
 ---@param hand string|nil
----@return string|nil @Name of the held item or nil if empty
+---@return string|nil @Held item name or nil if empty
 function LuaPlayer:getHeldItem(hand) end
 
 ---Adds an item to the player's inventory.
@@ -120,17 +147,97 @@ function LuaPlayer:getHeldItem(hand) end
 ---@return boolean @True if added successfully
 function LuaPlayer:addItem(item) end
 
----Gets the player's current position as a Vector3.
----@return Vector3 @The player's position as a vector
+---Sends a raw JSON-formatted chat message to the player. Accepts JSON strings such as '{"rawtext":[{"text":"§aExample "},{"text":"§e§lText"}]}' or '{"rawtext":[{"text":"§aExample §e§lText"}]}' and falls back to plain text if the JSON is invalid.
+---@param json string
+function LuaPlayer:sendTellraw(json) end
+
+---Gives an item to the player's inventory using a registry ID or a LuaItemStack. If a string is provided, it is treated as a registry ID and a single item is created. Returns true if the item was successfully added.
+---@param item string|LuaItemStack
+---@return boolean @True if the item was successfully added
+function LuaPlayer:giveItem(item) end
+
+---Adds a custom-created LuaItemStack to the player's inventory.
+---@param itemStack LuaItemStack
+---@return boolean @True if the item stack was added successfully
+function LuaPlayer:giveItemStack(itemStack) end
+
+---Returns the entity's internal ID. (Inherited from LuaEntity)
+---@return number @The entity ID
+function LuaPlayer:getId() end
+
+---Returns the entity's registry name/type. (Inherited from LuaEntity)
+---@return string @Entity type name
+function LuaPlayer:getType() end
+
+---Checks if the entity is a player. (Inherited from LuaEntity)
+---@return boolean @True if player
+function LuaPlayer:isPlayer() end
+
+---Instantly kills the entity. (Inherited from LuaEntity)
+function LuaPlayer:kill() end
+
+---Sets the position of the entity. (Inherited from LuaEntity)
+---@param pos Vector3
+function LuaPlayer:setPosition(pos) end
+
+---Sets the entity on fire for a specific number of ticks. (Inherited from LuaEntity)
+---@param ticks number
+function LuaPlayer:setFireTicks(ticks) end
+
+---Extinguishes fire on the entity. (Inherited from LuaEntity)
+function LuaPlayer:clearFire() end
+
+---Returns the current position of the entity. For players, returns a Vector3; for other entities, returns a table with x, y, and z fields. (Inherited from LuaEntity)
+---@return Vector3|table @The entity's position
 function LuaPlayer:getPosition() end
+
+---Gets the current health of the entity. Returns nil if the entity does not have a health attribute. (Inherited from LuaEntity)
+---@return number|nil @The current health value or nil
+function LuaPlayer:getHealth() end
+
+---Sets the entity's health to a specified value, if applicable. (Inherited from LuaEntity)
+---@param health number
+function LuaPlayer:setHealth(health) end
+
+---Retrieves the maximum health of the entity, if available. (Inherited from LuaEntity)
+---@return number|nil @The maximum health value or nil
+function LuaPlayer:getMaxHealth() end
+
+---Heals the entity by the specified amount, if applicable. (Inherited from LuaEntity)
+---@param amount number
+function LuaPlayer:heal(amount) end
+
+---Damages the entity by the specified amount, if applicable. (Inherited from LuaEntity)
+---@param amount number
+function LuaPlayer:damage(amount) end
+
+---Returns the world in which the entity resides. For player entities, this is the world the player is in. (Inherited from LuaEntity)
+---@return LuaWorld @The world object where the entity is located
+function LuaPlayer:getWorld() end
 
 ---Gets the current world time.
 ---@return number @The world time in ticks
 function LuaWorld:getTime() end
 
----Sets the world time.
+---Sets the world time relative to the current day. The provided tick value is applied to the current day without affecting the number of days passed.
 ---@param ticks number
 function LuaWorld:setTime(ticks) end
+
+---Sets the world time absolutely.
+---@param ticks number
+function LuaWorld:setTimeAbsolute(ticks) end
+
+---Sets the world time relative to the current day using a clock format. Expects a string in HH:MM:SS format.
+---@param time string
+function LuaWorld:setClockTime(time) end
+
+---Sets the world time absolutely using a clock format. Expects a string in HH:MM:SS format.
+---@param time string
+function LuaWorld:setClockTimeAbsolute(time) end
+
+---Sets the number of days passed while preserving the current time-of-day.
+---@param days number
+function LuaWorld:setDaysPassed(days) end
 
 ---Gets the name of the current dimension.
 ---@return string @The dimension name (e.g. 'overworld')
@@ -166,6 +273,18 @@ function LuaWorld:setBlock(info) end
 ---Gets the world's default spawn location.
 ---@return Vector3 @The spawn point as a vector
 function LuaWorld:getSpawnPoint() end
+
+---Returns a list of all player entities in the world wrapped as LuaPlayer objects.
+---@return LuaPlayer[] @A list of all players in the world
+function LuaWorld:getPlayers() end
+
+---Strikes lightning at the given position by summoning a lightning bolt entity. Expects a Vector3 representing the position at which to strike lightning.
+---@param pos Vector3
+function LuaWorld:strikeLightning(pos) end
+
+---Kills all Ender Dragons in the world by setting their health to 0. Works in all worlds; if none are found, returns false.
+---@return boolean @True if any Ender Dragons were defeated, false otherwise
+function LuaWorld:defeatEnderDragon() end
 
 ---Creates a new 3D vector.
 ---@param x number
@@ -255,24 +374,35 @@ function LuaItemStack:getDisplayName() end
 ---@return boolean @True if successful
 function LuaItemStack:setUsername(name) end
 
----Returns the entity's internal ID.
----@return number @The entity ID
-function LuaEntity:getId() end
+---Adds an enchantment to the item stack using the given registry ID and level.
+---@param enchantId string
+---@param level number
+---@return boolean @True if the enchantment was added
+function LuaItemStack:addEnchantment(enchantId, level) end
 
----Returns the entity's registry name/type.
----@return string @Entity type name (e.g., 'Zombie')
-function LuaEntity:getType() end
+---Modifies the level of an existing enchantment on the item stack.
+---@param enchantId string
+---@param newLevel number
+---@return boolean @True if the enchantment was modified
+function LuaItemStack:modifyEnchantment(enchantId, newLevel) end
 
----Returns the entity's current block position.
----@return table @Table with x, y, z fields
-function LuaEntity:getPosition() end
+---Removes the enchantment identified by the given registry ID from the item stack.
+---@param enchantId string
+---@return boolean @True if the enchantment was removed
+function LuaItemStack:removeEnchantment(enchantId) end
 
----Checks if the entity is a player.
----@return boolean @True if the entity is a player
-function LuaEntity:isPlayer() end
+---Sets the display name of the item. The name is stored in the item's display tag.
+---@param name string
+function LuaItemStack:setDisplayName(name) end
 
----Instantly kills the entity.
-function LuaEntity:kill() end
+---Sets the lore for the item. Expects a table of strings, where each string is a lore line.
+---@param lore table
+function LuaItemStack:setLore(lore) end
+
+---Sets the content of a written book. Expects a table with 'title', 'author', and 'pages' keys. The 'pages' key should be a table of strings, each representing a page's text.
+---@param bookInfo table
+---@return boolean @True if the book content was successfully set
+function LuaItemStack:setBookContent(bookInfo) end
 
 ---Returns the position of the block as a Vector3.
 ---@return Vector3 @Block position
@@ -296,4 +426,15 @@ function LuaBlock:isSolid() end
 
 ---Stops the event listener from receiving further events.
 function LuaEvent:disconnect() end
+
+---Pauses script execution for the given number of seconds.
+---@param seconds number
+function wait(seconds) end
+
+---Pauses script execution for the given number of ticks (1 tick = 50 ms).
+---@param ticks number
+function waitTicks(ticks) end
+
+---@type LuaPlayer
+sender = nil
 

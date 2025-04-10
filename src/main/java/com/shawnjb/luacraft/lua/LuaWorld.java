@@ -11,9 +11,11 @@ import com.shawnjb.luacraft.docs.LuaDocRegistry;
 import com.shawnjb.luacraft.lua.api.LuaVector3;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.effect.EntityLightningBolt;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class LuaWorld extends LuaTable {
@@ -47,7 +49,60 @@ public class LuaWorld extends LuaTable {
         set("setTime", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
+                // Sets time relative to current day: newTime = currentDays * 24000 +
+                // providedTick
+                long relativeTicks = arg.checklong();
+                long current = world.getWorldTime();
+                long newAbsolute = current - (current % 24000) + relativeTicks;
+                world.setWorldTime(newAbsolute);
+                return LuaValue.NIL;
+            }
+        });
+
+        set("setTimeAbsolute", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue arg) {
+                // Sets the time absolutely.
                 world.setWorldTime(arg.checklong());
+                return LuaValue.NIL;
+            }
+        });
+
+        set("setClockTime", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue arg) {
+                // Expects a string "HH:MM:SS". Converts to ticks and sets time relative to
+                // current day.
+                String timeStr = arg.checkjstring();
+                long ticks = parseClockTime(timeStr);
+                long current = world.getWorldTime();
+                long newAbsolute = current - (current % 24000) + ticks;
+                world.setWorldTime(newAbsolute);
+                return LuaValue.NIL;
+            }
+        });
+
+        set("setClockTimeAbsolute", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue arg) {
+                // Expects a string "HH:MM:SS". Converts to ticks and sets the world time
+                // absolutely.
+                String timeStr = arg.checkjstring();
+                long ticks = parseClockTime(timeStr);
+                world.setWorldTime(ticks);
+                return LuaValue.NIL;
+            }
+        });
+
+        set("setDaysPassed", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue arg) {
+                // Accepts the number of days passed, preserving the current time-of-day.
+                long days = arg.checklong();
+                long current = world.getWorldTime();
+                long dayTime = current % 24000;
+                long newTime = days * 24000L + dayTime;
+                world.setWorldTime(newTime);
                 return LuaValue.NIL;
             }
         });
@@ -137,6 +192,63 @@ public class LuaWorld extends LuaTable {
                 return LuaValue.TRUE;
             }
         });
+
+        set("getPlayers", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                LuaTable players = new LuaTable();
+                int index = 1;
+                for (Object obj : world.playerEntities) {
+                    if (obj instanceof net.minecraft.entity.player.EntityPlayer) {
+                        players.set(index++, new LuaPlayer((net.minecraft.entity.player.EntityPlayer) obj));
+                    }
+                }
+                return players;
+            }
+        });
+
+        set("strikeLightning", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue arg) {
+                LuaVector3 pos = LuaVector3.fromLuaTable(arg.checktable());
+                EntityLightningBolt bolt = new EntityLightningBolt(world, pos.x, pos.y, pos.z, false);
+                world.spawnEntity(bolt);
+                return LuaValue.NIL;
+            }
+        });
+
+        set("defeatEnderDragon", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                boolean found = false;
+                for (Object obj : world.loadedEntityList) {
+                    if (obj instanceof net.minecraft.entity.boss.EntityDragon) {
+                        net.minecraft.entity.boss.EntityDragon dragon = (net.minecraft.entity.boss.EntityDragon) obj;
+                        dragon.setHealth(0);
+                        found = true;
+                    }
+                }
+                return LuaValue.valueOf(found);
+            }
+        });
+    }
+
+    private long parseClockTime(String timeStr) {
+        String[] parts = timeStr.split(":");
+        if (parts.length != 3) {
+            throw new IllegalArgumentException("Time must be in HH:MM:SS format");
+        }
+        try {
+            int hours = Integer.parseInt(parts[0]);
+            int minutes = Integer.parseInt(parts[1]);
+            int seconds = Integer.parseInt(parts[2]);
+            long ticks = hours * 1000L;
+            ticks += Math.round(minutes * (1000.0 / 60.0));
+            ticks += Math.round(seconds * (1000.0 / 3600.0));
+            return ticks % 24000;
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid numeric values in time string: " + timeStr);
+        }
     }
 
     public World getHandle() {
@@ -155,8 +267,36 @@ public class LuaWorld extends LuaTable {
 
         LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
                 "setTime",
-                "Sets the world time.",
-                Arrays.asList(new LuaDocRegistry.Param("ticks", "number", "The new world time in ticks")),
+                "Sets the world time relative to the current day. The provided tick value is applied to the current day without affecting the number of days passed.",
+                Arrays.asList(new LuaDocRegistry.Param("ticks", "number", "Tick value (0–23999)")),
+                Arrays.asList(),
+                true));
+
+        LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
+                "setTimeAbsolute",
+                "Sets the world time absolutely.",
+                Arrays.asList(new LuaDocRegistry.Param("ticks", "number", "Absolute tick value")),
+                Arrays.asList(),
+                true));
+
+        LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
+                "setClockTime",
+                "Sets the world time relative to the current day using a clock format. Expects a string in HH:MM:SS format.",
+                Arrays.asList(new LuaDocRegistry.Param("time", "string", "Time in HH:MM:SS format")),
+                Arrays.asList(),
+                true));
+
+        LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
+                "setClockTimeAbsolute",
+                "Sets the world time absolutely using a clock format. Expects a string in HH:MM:SS format.",
+                Arrays.asList(new LuaDocRegistry.Param("time", "string", "Time in HH:MM:SS format")),
+                Arrays.asList(),
+                true));
+
+        LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
+                "setDaysPassed",
+                "Sets the number of days passed while preserving the current time-of-day.",
+                Arrays.asList(new LuaDocRegistry.Param("days", "number", "Number of days passed")),
                 Arrays.asList(),
                 true));
 
@@ -214,6 +354,30 @@ public class LuaWorld extends LuaTable {
                 "Gets the world's default spawn location.",
                 Arrays.asList(),
                 Arrays.asList(new LuaDocRegistry.Return("Vector3", "The spawn point as a vector")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
+                "getPlayers",
+                "Returns a list of all player entities in the world wrapped as LuaPlayer objects.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("LuaPlayer[]", "A list of all players in the world")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
+                "strikeLightning",
+                "Strikes lightning at the given position by summoning a lightning bolt entity. " +
+                        "Expects a Vector3 representing the position at which to strike lightning.",
+                Arrays.asList(new LuaDocRegistry.Param("pos", "Vector3", "The position at which to strike lightning")),
+                Arrays.asList(),
+                true));
+
+        LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
+                "defeatEnderDragon",
+                "Kills all Ender Dragons in the world by setting their health to 0. " +
+                        "Works in all worlds; if none are found, returns false.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("boolean",
+                        "True if any Ender Dragons were defeated, false otherwise")),
                 true));
     }
 }

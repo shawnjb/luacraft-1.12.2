@@ -116,6 +116,41 @@ public class LuaDocRegistry {
         addFunction(category, doc);
     }
 
+    public static void inheritMethods(String parentClass, String childClass) {
+        List<FunctionDoc> parentFunctions = functionDocs.get(parentClass);
+        if (parentFunctions != null) {
+            for (FunctionDoc func : parentFunctions) {
+                String newDescription = func.description + " (Inherited from " + parentClass + ")";
+                FunctionDoc copy = new FunctionDoc(
+                        func.name,
+                        newDescription,
+                        new ArrayList<>(func.params),
+                        new ArrayList<>(func.returns),
+                        func.isMethod);
+                addFunction(childClass, copy);
+            }
+            System.out.println("Inherited " + parentFunctions.size() + " methods from " + parentClass + " to " + childClass);
+        }
+    
+        List<FieldDoc> parentFields = fieldDocs.get(parentClass);
+        if (parentFields != null) {
+            for (FieldDoc field : parentFields) {
+                FieldDoc fieldCopy = new FieldDoc(field.name, field.type, field.description + " (Inherited from " + parentClass + ")");
+                addField(childClass, fieldCopy);
+            }
+        }
+    }
+    
+    private static final List<FieldDoc> globalFields = new ArrayList<>();
+
+    public static void addGlobalField(String fieldName, String type, String description) {
+        globalFields.add(new FieldDoc(fieldName, type, description));
+    }
+
+    public static List<FieldDoc> getGlobalFields() {
+        return globalFields;
+    }
+
     public static void clear() {
         functionDocs.clear();
         fieldDocs.clear();

@@ -86,7 +86,8 @@ public class LuaDocGenerator {
                             String rawType = param.type.replace("?", "|nil");
                             String normalizedType = rawType.equals("fun") ? "function" : rawType;
 
-                            writer.write(String.format("---@param %s %s\n", param.name.replace("?", ""), normalizedType));
+                            writer.write(
+                                    String.format("---@param %s %s\n", param.name.replace("?", ""), normalizedType));
                         }
 
                         for (LuaDocRegistry.Return ret : func.returns) {
@@ -111,8 +112,14 @@ public class LuaDocGenerator {
                                 writer.write(", ");
                             }
                         }
+
                         writer.write(") end\n\n");
                     }
+                }
+
+                for (LuaDocRegistry.FieldDoc field : LuaDocRegistry.getGlobalFields()) {
+                    writer.write(String.format("---@type %s\n", field.type));
+                    writer.write(String.format("%s = nil\n\n", field.name));
                 }
 
                 System.out.println("[LuaDocGenerator] docs.lua generated at: " + outputPath.toAbsolutePath());

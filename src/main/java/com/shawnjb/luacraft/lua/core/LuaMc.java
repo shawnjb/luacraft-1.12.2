@@ -35,10 +35,7 @@ public class LuaMc extends LuaTable {
         set("getLuaJVersion", new GetLuaJVersionFunction());
         set("summonEntity", new SummonEntityFunction());
         set("createItemStack", new CreateItemStackFunction());
-
-        // Register global Vector3 class
         LuaVector3.registerGlobal(this);
-
         if (sender != null) {
             set("sender", sender);
         }
@@ -221,5 +218,8 @@ public class LuaMc extends LuaTable {
                         new LuaDocRegistry.Param("count", "number", "The number of items in the stack")),
                 Arrays.asList(new LuaDocRegistry.Return("LuaItemStack", "The created item stack or nil if invalid")),
                 false));
+
+        LuaDocRegistry.addGlobalField("sender", "LuaPlayer",
+                "The player who triggered the current command or event. This global field is set only when a sender is available.");
     }
 }

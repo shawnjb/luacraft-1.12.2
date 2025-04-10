@@ -1,16 +1,21 @@
 [
-{
-  "modid": "template_mod",
-  "name": "Forge Template Mod",
-  "description": "Example forge mod.",
-  "version": "${version}",
-  "mcversion": "${mcversion}",
-  "url": "",
-  "updateUrl": "",
-  "authorList": ["ExampleDude"],
-  "credits": "The Forge and FML guys, for making this example",
-  "logoFile": "",
-  "screenshots": [],
-  "dependencies": []
-}
+  {
+    "modid": "luacraft",
+    "name": "LuaCraft Mod",
+    "description": "A Lua scripting mod for Minecraft Forge. Enables scripting of in-game behavior using Lua.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "https://github.com/shawnjb/luacraft-1.12.2",
+    "updateUrl": "https://github.com/shawnjb/luacraft-1.12.2/releases",
+    "authorList": [
+      "shawnjb"
+    ],
+    "credits": "Special thanks to the Forge and FML teams, and the open source community.",
+    "logoFile": "assets/luacraft/logo.png",
+    "screenshots": [
+      "assets/luacraft/screenshot1.png",
+      "assets/luacraft/screenshot2.png"
+    ],
+    "dependencies": []
+  }
 ]
