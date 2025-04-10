@@ -83,7 +83,7 @@ chatCommandEvent = mc.bindToEvent("ServerChat", function(event)
             end
             local targetPos = targetPlayer:getPosition()
             for _, p in ipairs(sources) do
-                p:teleport(targetPos)
+                p:setPosition(targetPos)
                 p:sendTellraw('{"rawtext":[{"text":"§aYou were teleported to ' .. targetPlayer:getName() .. '"}]}')
             end
             player:sendTellraw('{"rawtext":[{"text":"§aTeleported ' .. #sources .. ' player(s) to ' .. targetPlayer:getName() .. '"}]}')
@@ -215,7 +215,7 @@ chatCommandEvent = mc.bindToEvent("ServerChat", function(event)
                 local z = origin.z + dz
                 local y = getSafeY(x, z)
                 if type(y) == 'number' then
-                    p:teleport(Vector3.new(x, y, z))
+                    p:setPosition(Vector3.new(x, y, z))
                     p:sendTellraw('{"rawtext":[{"text":"§aYou have been randomly teleported."}]}')
                 end
             end
