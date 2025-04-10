@@ -1,9 +1,12 @@
 package com.shawnjb.luacraft.lua;
 
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.EntityEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.LuaTable;
 
 import java.util.*;
 
@@ -11,7 +14,6 @@ public class LuaEventManager {
     private static final Map<String, List<LuaFunction>> listeners = new HashMap<>();
     private static boolean isRegisteredToForgeBus = false;
 
-    // Dynamic listener to capture all Forge events
     private static final Object dynamicListener = new Object() {
         @SubscribeEvent
         public void onAnyEvent(Object event) {
@@ -20,12 +22,25 @@ public class LuaEventManager {
             if (funcs != null) {
                 for (LuaFunction func : funcs) {
                     try {
-                        // TODO: wrap specific event types with LuaEntity/LuaPlayer/etc.
-                        func.call(LuaValue.valueOf(name)); // basic string param for now
+                        LuaValue wrappedEvent = wrapEvent(event);
+                        func.call(wrappedEvent);
                     } catch (Exception e) {
                         System.err.println("[LuaCraft] Lua listener error: " + e.getMessage());
                     }
                 }
+            }
+        }
+
+        private LuaValue wrapEvent(Object event) {
+            if (event instanceof EntityEvent) {
+                EntityEvent entityEvent = (EntityEvent) event;
+                return new LuaEntity(entityEvent.getEntity());
+            }
+            else {
+                LuaTable luaEvent = new LuaTable();
+                luaEvent.set("eventName", LuaValue.valueOf(event.getClass().getSimpleName()));
+                luaEvent.set("eventObject", LuaValue.valueOf(event.toString()));
+                return luaEvent;
             }
         }
     };

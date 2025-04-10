@@ -17,7 +17,7 @@ public class LuaMaterial extends LuaTable {
         set("getName", new ZeroArgFunction() {
             @Override
             public LuaValue call() {
-                return LuaValue.valueOf(material.toString()); // fallback if name not available
+                return LuaValue.valueOf(material.toString());
             }
         });
 

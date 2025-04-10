@@ -43,6 +43,11 @@ function mc.execute(command) end
 ---@return LuaEvent @The event binding handle
 function mc.bindToEvent(eventName, callback) end
 
+---Gets the command sender for a player by name.
+---@param playerName string
+---@return LuaCommandSender @The command sender object for the player, or nil if not found
+function mc.getCommandSender(playerName) end
+
 ---Returns the name of the player.
 ---@return string @The player's name
 function LuaPlayer:getName() end

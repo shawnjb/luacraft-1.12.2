@@ -58,8 +58,12 @@ task generateLuaDocs(type: JavaExec) {
         file("src/main/resources/docs").mkdirs()
     }
 
-    // always regenerate docs, even if nothing changed
     outputs.upToDateWhen { false }
 }
 
 generateLuaDocs.dependsOn classes
+
+jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+}

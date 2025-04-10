@@ -30,6 +30,9 @@ public class LuaManager {
         scriptsFolder = new File(configDir, "luacraft/scripts");
         autorunFolder = new File(scriptsFolder, "autorun");
 
+        System.out.println("[LuaCraft] Scripts Folder: " + scriptsFolder.getAbsolutePath());
+        System.out.println("[LuaCraft] Autorun Folder: " + autorunFolder.getAbsolutePath());
+
         if (!scriptsFolder.exists()) {
             System.out.println("[LuaCraft] Copying default scripts...");
             copyEmbeddedScriptFolder("scripts/", scriptsFolder);
@@ -49,7 +52,6 @@ public class LuaManager {
             }
 
             if (root.getProtocol().equals("jar")) {
-                // From JAR
                 String jarPath = root.getPath().substring(5, root.getPath().indexOf("!"));
                 try (JarFile jar = new JarFile(URLDecoder.decode(jarPath, "UTF-8"))) {
                     Enumeration<JarEntry> entries = jar.entries();
@@ -63,7 +65,6 @@ public class LuaManager {
                     }
                 }
             } else {
-                // From file system (e.g., dev environment)
                 Path resourceDir = Paths.get(root.toURI());
                 Files.walk(resourceDir).forEach(path -> {
                     if (Files.isRegularFile(path)) {
@@ -95,10 +96,12 @@ public class LuaManager {
     }
 
     private static void runAutorunScripts() {
-        if (!autorunFolder.exists()) return;
+        if (!autorunFolder.exists())
+            return;
 
         File[] files = autorunFolder.listFiles((dir, name) -> name.endsWith(".lua"));
-        if (files == null) return;
+        if (files == null)
+            return;
 
         for (File file : files) {
             System.out.println("[LuaCraft] Running autorun script: " + file.getName());
@@ -116,7 +119,8 @@ public class LuaManager {
             LuaValue chunk = globals.load(code, "script");
             chunk.call();
         } catch (Exception e) {
-            System.err.println("[LuaCraft] Lua error: " + e.getMessage());
+            System.err.println("[LuaCraft] Lua error while running code:\n" + code);
+            e.printStackTrace();
         }
     }
 
@@ -124,11 +128,15 @@ public class LuaManager {
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             StringBuilder builder = new StringBuilder();
             String line;
-            while ((line = reader.readLine()) != null)
+            while ((line = reader.readLine()) != null) {
                 builder.append(line).append("\n");
+            }
             runScript(builder.toString());
         } catch (IOException e) {
             System.err.println("[LuaCraft] Failed to run script '" + file.getName() + "': " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("[LuaCraft] Error executing script file: " + file.getName());
+            e.printStackTrace();
         }
     }
 

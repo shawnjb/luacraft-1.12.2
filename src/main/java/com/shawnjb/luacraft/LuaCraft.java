@@ -1,11 +1,16 @@
 package com.shawnjb.luacraft;
 
+import com.shawnjb.luacraft.commands.ListScriptsCommand;
+import com.shawnjb.luacraft.commands.LoadScriptCommand;
+import com.shawnjb.luacraft.commands.RunScriptCommand;
 import com.shawnjb.luacraft.docs.LuaDocBootstrap;
 import com.shawnjb.luacraft.lua.LuaManager;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraft.server.MinecraftServer;
 
 import java.io.File;
 
@@ -18,10 +23,9 @@ public class LuaCraft {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         System.out.println("[" + NAME + "] Pre-Initialization");
-
         File configDir = new File(event.getModConfigurationDirectory(), MODID);
-        if (!configDir.exists()) configDir.mkdirs();
-
+        if (!configDir.exists())
+            configDir.mkdirs();
         LuaManager.init(configDir);
         System.out.println("[" + NAME + "] LuaManager initialized");
     }
@@ -29,15 +33,24 @@ public class LuaCraft {
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         System.out.println("[" + NAME + "] Initialization");
-
         LuaDocBootstrap.registerAll();
         System.out.println("[" + NAME + "] Lua documentation registered");
     }
 
     @Mod.EventHandler
+    public void serverStarting(FMLServerStartingEvent event) {
+        System.out.println("[" + NAME + "] Server Starting");
+
+        MinecraftServer server = event.getServer();
+        if (server != null) {
+            server.getCommandManager().getCommands().put("runscript", new RunScriptCommand());
+            server.getCommandManager().getCommands().put("loadscript", new LoadScriptCommand());
+            server.getCommandManager().getCommands().put("listscripts", new ListScriptsCommand());
+        }
+    }
+
+    @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         System.out.println("[" + NAME + "] Post-Initialization");
-
-        // Any additional post-setup logic can go here.
     }
 }
