@@ -12,6 +12,7 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.OneArgFunction;
+import org.luaj.vm2.lib.TwoArgFunction;
 import org.luaj.vm2.lib.ZeroArgFunction;
 import java.util.Arrays;
 
@@ -88,16 +89,15 @@ public class LuaPlayer extends LuaEntity {
             }
         });
 
-        set("giveItem", new OneArgFunction() {
+        set("giveItem", new TwoArgFunction() {
             @Override
-            public LuaValue call(LuaValue arg) {
-                String id = arg.checkjstring();
+            public LuaValue call(LuaValue idArg, LuaValue countArg) {
+                String id = idArg.checkjstring();
                 int totalCount = 1;
-                if (!arg.arg(2).isnil()) {
-                    totalCount = arg.arg(2).checkint();
+                if (!countArg.isnil()) {
+                    totalCount = countArg.checkint();
                 }
                 totalCount = Math.max(1, Math.min(totalCount, 256));
-
                 final int maxStackSize = 64;
                 boolean overallSuccess = true;
                 int remaining = totalCount;
@@ -126,6 +126,36 @@ public class LuaPlayer extends LuaEntity {
                 LuaItemStack luaStack = (LuaItemStack) arg.checkuserdata(LuaItemStack.class);
                 boolean success = player.inventory.addItemStackToInventory(luaStack.getHandle());
                 return LuaValue.valueOf(success);
+            }
+        });
+
+        set("getDimension", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                return LuaValue.valueOf(player.getEntityWorld().provider.getDimensionType().getName());
+            }
+        });
+
+        set("getItemInHand", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                ItemStack held = player.getHeldItem(EnumHand.MAIN_HAND);
+                if (held == null || held.isEmpty())
+                    return LuaValue.NIL;
+                return new LuaItemStack(held);
+            }
+        });
+
+        set("getInventoryItem", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue indexVal) {
+                int index = indexVal.checkint();
+                if (index < 0 || index >= player.inventory.getSizeInventory())
+                    return LuaValue.NIL;
+                ItemStack stack = player.inventory.getStackInSlot(index);
+                if (stack == null || stack.isEmpty())
+                    return LuaValue.NIL;
+                return new LuaItemStack(stack);
             }
         });
     }
@@ -176,15 +206,14 @@ public class LuaPlayer extends LuaEntity {
 
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
                 "giveItem",
-                "Gives an item to the player's inventory using a registry ID or a LuaItemStack. " +
-                        "If a string is provided as the first argument and an optional second argument is given as the amount, "
-                        +
-                        "the item is created in stacks. The amount is clamped between 1 and 256 (allowing up to 4 stacks of 64). "
+                "Gives an item to the player's inventory using a registry ID. " +
+                        "Accepts an optional second argument for the total count to give. " +
+                        "If the total count is above 64, the items are split into multiple stacks (clamped between 1 and 256). "
                         +
                         "Returns true if all items were successfully added.",
                 Arrays.asList(
-                        new LuaDocRegistry.Param("item", "string|LuaItemStack",
-                                "The registry ID of the item (e.g. 'minecraft:stone') or a LuaItemStack"),
+                        new LuaDocRegistry.Param("item", "string",
+                                "The registry ID of the item (e.g. 'minecraft:stone')"),
                         new LuaDocRegistry.Param("count", "number|nil",
                                 "Optional total count to give (clamped between 1 and 256)")),
                 Arrays.asList(new LuaDocRegistry.Return("boolean", "True if the items were successfully added")),
@@ -195,6 +224,27 @@ public class LuaPlayer extends LuaEntity {
                 "Adds a custom-created LuaItemStack to the player's inventory.",
                 Arrays.asList(new LuaDocRegistry.Param("itemStack", "LuaItemStack", "The item stack to add")),
                 Arrays.asList(new LuaDocRegistry.Return("boolean", "True if the item stack was added successfully")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
+                "getDimension",
+                "Returns the name of the dimension the player is currently in.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("string", "The dimension name (e.g., 'overworld')")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
+                "getItemInHand",
+                "Returns the item currently held in the player's main hand as a LuaItemStack, or nil if the hand is empty.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("LuaItemStack|nil", "The held item stack or nil")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
+                "getInventoryItem",
+                "Returns the item in the player's inventory at the given slot index as a LuaItemStack, or nil if empty.",
+                Arrays.asList(new LuaDocRegistry.Param("index", "number", "The inventory slot index (0-based)")),
+                Arrays.asList(new LuaDocRegistry.Return("LuaItemStack|nil", "The item in the slot or nil")),
                 true));
 
         LuaDocRegistry.inheritMethods("LuaEntity", "LuaPlayer");

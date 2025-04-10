@@ -1,9 +1,12 @@
+--- @type LuaEvent
 local chatCommandEvent = _G.chatCommandEvent
 if type(chatCommandEvent) == 'table' and type(chatCommandEvent.disconnect) == 'function' then
     chatCommandEvent:disconnect()
 end
 chatCommandEvent = mc.bindToEvent("ServerChat", function(event)
+    --- @type LuaPlayer
     local player = event.player
+    --- @type string
     local message = event.message
 
     if not message:find("^:") then 
@@ -65,6 +68,8 @@ chatCommandEvent = mc.bindToEvent("ServerChat", function(event)
     end
 
     local abusiveCommands = {
+        --- @param player LuaPlayer
+        --- @param args string[]
         kill = function(player, args)
             local targets = resolveTargets(args[2])
             for _, p in ipairs(targets) do
@@ -250,20 +255,29 @@ chatCommandEvent = mc.bindToEvent("ServerChat", function(event)
     abusiveCommands.nofire = extinguishPlayers
 
     local nonAbusiveCommands = {
+        --- @param player LuaPlayer
         help = function(player)
             player:sendTellraw('{"rawtext":[{"text":"§cCommand help is limited in legacy chat."}] }')
             player:sendTellraw('{"rawtext":[{"text":"§cRead the source file or ask an op/dev for help."}] }')
         end,
+
+        --- @param player LuaPlayer
         ping = function(player)
             player:sendTellraw('{"rawtext":[{"text":"§aPong"}]}')
         end,
+
+        --- @param player LuaPlayer
         coords = function(player)
             local pos = player:getPosition()
             player:sendTellraw('{"rawtext":[{"text":"§aYour position is: x=' .. string.format("%.2f", pos.x) .. " y=" .. string.format("%.2f", pos.y) .. " z=" .. string.format("%.2f", pos.z) .. '"}]}')
         end,
+
+        --- @param player LuaPlayer
         dimension = function(player)
             player:sendTellraw('{"rawtext":[{"text":"§aYou are in: ' .. player:getDimension() .. '"}]}')
         end,
+
+        --- @param player LuaPlayer
         who = function(player)
             local players = world:getPlayers()
             local names = {}
@@ -272,15 +286,21 @@ chatCommandEvent = mc.bindToEvent("ServerChat", function(event)
             end
             player:sendTellraw('{"rawtext":[{"text":"§aOnline players: ' .. table.concat(names, ", ") .. '"}]}')
         end,
+
+        --- @param player LuaPlayer
         health = function(player)
             player:sendTellraw('{"rawtext":[{"text":"§aYour health: ' .. player:getHealth() .. " / " .. player:getMaxHealth() .. '"}]}')
         end,
+
+        --- @param player LuaPlayer
         status = function(player)
             local health = player:getHealth()
             local fireTicks = player:getFireTicks() or 0
             player:sendTellraw('{"rawtext":[{"text":"§aHealth: ' .. health .. " / " .. player:getMaxHealth() .. '"}]}')
             player:sendTellraw('{"rawtext":[{"text":"§aOn fire: ' .. (fireTicks > 0 and "yes (" .. fireTicks .. " ticks)" or "no") .. '"}]}')
         end,
+
+        --- @param player LuaPlayer
         item = function(player)
             local item = player:getItemInHand()
             if item and item.getType then
@@ -289,6 +309,8 @@ chatCommandEvent = mc.bindToEvent("ServerChat", function(event)
                 player:sendTellraw('{"rawtext":[{"text":"§cYour hand is empty."}]}')
             end
         end,
+        
+        --- @param player LuaPlayer
         inv = function(player, args)
             local material = args[2]
             if not material then
@@ -306,6 +328,8 @@ chatCommandEvent = mc.bindToEvent("ServerChat", function(event)
             end
             player:sendTellraw('{"rawtext":[{"text":"you have ' .. count .. ' of ' .. material .. '"}]}')
         end,
+
+        --- @param player LuaPlayer
         compass = function(player)
             local dir = player:getLookDirection()
             local angle = math.atan2(dir.z, dir.x) * (180 / math.pi)

@@ -8,6 +8,8 @@ import net.minecraft.entity.EntityList;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.OneArgFunction;
@@ -158,6 +160,35 @@ public class LuaEntity extends LuaTable {
                 return new LuaWorld(entity.getEntityWorld());
             }
         });
+
+        set("getLookDirection", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                if (entity instanceof EntityLivingBase) {
+                    Vec3d look = ((EntityLivingBase) entity).getLook(1.0F);
+                    return new LuaVector3(look.x, look.y, look.z);
+                }
+                return LuaValue.NIL;
+            }
+        });
+
+        set("getFireTicks", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                if (entity instanceof net.minecraft.entity.EntityLivingBase) {
+                    try {
+                        java.lang.reflect.Field fireField = net.minecraft.entity.EntityLivingBase.class
+                                .getDeclaredField("fire");
+                        fireField.setAccessible(true);
+                        int fireTicks = fireField.getInt(entity);
+                        return LuaValue.valueOf(fireTicks);
+                    } catch (Exception e) {
+                        return LuaValue.error("Failed to retrieve fire ticks: " + e.getMessage());
+                    }
+                }
+                return LuaValue.NIL;
+            }
+        });
     }
 
     public Entity getHandle() {
@@ -241,6 +272,22 @@ public class LuaEntity extends LuaTable {
                 "Returns the world in which the entity resides. For player entities, this is the world the player is in.",
                 Arrays.asList(),
                 Arrays.asList(new LuaDocRegistry.Return("LuaWorld", "The world object where the entity is located")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaEntity", new LuaDocRegistry.FunctionDoc(
+                "getLookDirection",
+                "Returns a vector representing the direction the entity is looking. " +
+                        "If the entity is not a living entity, nil is returned.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("Vector3|nil",
+                        "A vector representing the look direction, or nil if not available")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaEntity", new LuaDocRegistry.FunctionDoc(
+                "getFireTicks",
+                "Returns the current number of ticks the entity will remain on fire. (Accessed via reflection)",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("number", "The fire ticks, or an error if inaccessible")),
                 true));
     }
 }

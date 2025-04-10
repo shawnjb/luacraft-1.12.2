@@ -129,6 +129,14 @@ function LuaEntity:damage(amount) end
 ---@return LuaWorld @The world object where the entity is located
 function LuaEntity:getWorld() end
 
+---Returns a vector representing the direction the entity is looking. If the entity is not a living entity, nil is returned.
+---@return Vector3|nil @A vector representing the look direction, or nil if not available
+function LuaEntity:getLookDirection() end
+
+---Returns the current number of ticks the entity will remain on fire. (Accessed via reflection)
+---@return number @The fire ticks, or an error if inaccessible
+function LuaEntity:getFireTicks() end
+
 ---Returns the name of the player.
 ---@return string @The player's name
 function LuaPlayer:getName() end
@@ -151,8 +159,8 @@ function LuaPlayer:addItem(item) end
 ---@param json string
 function LuaPlayer:sendTellraw(json) end
 
----Gives an item to the player's inventory using a registry ID or a LuaItemStack. If a string is provided as the first argument and an optional second argument is given as the amount, the item is created in stacks. The amount is clamped between 1 and 256 (allowing up to 4 stacks of 64). Returns true if all items were successfully added.
----@param item string|LuaItemStack
+---Gives an item to the player's inventory using a registry ID. Accepts an optional second argument for the total count to give. If the total count is above 64, the items are split into multiple stacks (clamped between 1 and 256). Returns true if all items were successfully added.
+---@param item string
 ---@param count number|nil
 ---@return boolean @True if the items were successfully added
 function LuaPlayer:giveItem(item, count) end
@@ -161,6 +169,19 @@ function LuaPlayer:giveItem(item, count) end
 ---@param itemStack LuaItemStack
 ---@return boolean @True if the item stack was added successfully
 function LuaPlayer:giveItemStack(itemStack) end
+
+---Returns the name of the dimension the player is currently in.
+---@return string @The dimension name (e.g., 'overworld')
+function LuaPlayer:getDimension() end
+
+---Returns the item currently held in the player's main hand as a LuaItemStack, or nil if the hand is empty.
+---@return LuaItemStack|nil @The held item stack or nil
+function LuaPlayer:getItemInHand() end
+
+---Returns the item in the player's inventory at the given slot index as a LuaItemStack, or nil if empty.
+---@param index number
+---@return LuaItemStack|nil @The item in the slot or nil
+function LuaPlayer:getInventoryItem(index) end
 
 ---Returns the entity's internal ID. (Inherited from LuaEntity)
 ---@return number @The entity ID
@@ -215,6 +236,14 @@ function LuaPlayer:damage(amount) end
 ---Returns the world in which the entity resides. For player entities, this is the world the player is in. (Inherited from LuaEntity)
 ---@return LuaWorld @The world object where the entity is located
 function LuaPlayer:getWorld() end
+
+---Returns a vector representing the direction the entity is looking. If the entity is not a living entity, nil is returned. (Inherited from LuaEntity)
+---@return Vector3|nil @A vector representing the look direction, or nil if not available
+function LuaPlayer:getLookDirection() end
+
+---Returns the current number of ticks the entity will remain on fire. (Accessed via reflection) (Inherited from LuaEntity)
+---@return number @The fire ticks, or an error if inaccessible
+function LuaPlayer:getFireTicks() end
 
 ---Gets the current world time.
 ---@return number @The world time in ticks
