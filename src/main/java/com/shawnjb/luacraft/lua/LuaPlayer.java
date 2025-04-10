@@ -1,6 +1,7 @@
 package com.shawnjb.luacraft.lua;
 
 import com.shawnjb.luacraft.docs.LuaDocRegistry;
+import com.shawnjb.luacraft.lua.api.LuaVector3;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -10,6 +11,7 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.OneArgFunction;
+import org.luaj.vm2.lib.ZeroArgFunction;
 
 import java.util.Collections;
 
@@ -19,16 +21,16 @@ public class LuaPlayer extends LuaTable {
     public LuaPlayer(EntityPlayer player) {
         this.player = player;
 
-        set("getName", new OneArgFunction() {
+        set("getName", new ZeroArgFunction() {
             @Override
-            public LuaValue call(LuaValue arg) {
+            public LuaValue call() {
                 return LuaValue.valueOf(player.getName());
             }
         });
 
-        set("getHealth", new OneArgFunction() {
+        set("getHealth", new ZeroArgFunction() {
             @Override
-            public LuaValue call(LuaValue arg) {
+            public LuaValue call() {
                 return LuaValue.valueOf(player.getHealth());
             }
         });
@@ -41,9 +43,9 @@ public class LuaPlayer extends LuaTable {
             }
         });
 
-        set("isOp", new OneArgFunction() {
+        set("isOp", new ZeroArgFunction() {
             @Override
-            public LuaValue call(LuaValue arg) {
+            public LuaValue call() {
                 return LuaValue.valueOf(player.canUseCommand(4, ""));
             }
         });
@@ -56,9 +58,9 @@ public class LuaPlayer extends LuaTable {
             }
         });
 
-        set("getMaxHealth", new OneArgFunction() {
+        set("getMaxHealth", new ZeroArgFunction() {
             @Override
-            public LuaValue call(LuaValue arg) {
+            public LuaValue call() {
                 return LuaValue.valueOf(player.getMaxHealth());
             }
         });
@@ -79,9 +81,9 @@ public class LuaPlayer extends LuaTable {
             }
         });
 
-        set("kill", new OneArgFunction() {
+        set("kill", new ZeroArgFunction() {
             @Override
-            public LuaValue call(LuaValue arg) {
+            public LuaValue call() {
                 player.setHealth(0);
                 return LuaValue.NIL;
             }
@@ -105,11 +107,19 @@ public class LuaPlayer extends LuaTable {
             public LuaValue call(LuaValue arg) {
                 String name = arg.checkjstring();
                 Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(name));
-                if (item == null) return LuaValue.FALSE;
+                if (item == null)
+                    return LuaValue.FALSE;
 
                 ItemStack stack = new ItemStack(item);
                 boolean success = player.inventory.addItemStackToInventory(stack);
                 return LuaValue.valueOf(success);
+            }
+        });
+
+        set("getPosition", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                return new LuaVector3(player.posX, player.posY, player.posZ);
             }
         });
     }
@@ -187,15 +197,25 @@ public class LuaPlayer extends LuaTable {
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
                 "getHeldItem",
                 "Gets the name of the item held by the player.",
-                Collections.singletonList(new LuaDocRegistry.Param("hand", "string|nil", "The hand to check ('main' or 'off'). Defaults to 'main'.")),
-                Collections.singletonList(new LuaDocRegistry.Return("string|nil", "Name of the held item or nil if empty")),
+                Collections.singletonList(new LuaDocRegistry.Param("hand", "string|nil",
+                        "The hand to check ('main' or 'off'). Defaults to 'main'.")),
+                Collections.singletonList(
+                        new LuaDocRegistry.Return("string|nil", "Name of the held item or nil if empty")),
                 true));
 
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
                 "addItem",
                 "Adds an item to the player's inventory by name.",
-                Collections.singletonList(new LuaDocRegistry.Param("itemName", "string", "The registry name of the item")),
+                Collections
+                        .singletonList(new LuaDocRegistry.Param("itemName", "string", "The registry name of the item")),
                 Collections.singletonList(new LuaDocRegistry.Return("boolean", "True if added successfully")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
+                "getPosition",
+                "Gets the player's current position as a Vector3.",
+                Collections.emptyList(),
+                Collections.singletonList(new LuaDocRegistry.Return("Vector3", "The player's position as a vector")),
                 true));
     }
 }

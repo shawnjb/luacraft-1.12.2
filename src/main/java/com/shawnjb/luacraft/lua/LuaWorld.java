@@ -1,24 +1,41 @@
 package com.shawnjb.luacraft.lua;
 
-import com.shawnjb.luacraft.docs.LuaDocRegistry;
-import net.minecraft.world.World;
+import java.util.Arrays;
+
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.ZeroArgFunction;
-import com.shawnjb.luacraft.lua.api.LuaVector3;
-import net.minecraft.block.Block;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
-import java.util.Arrays;
+import com.shawnjb.luacraft.docs.LuaDocRegistry;
+import com.shawnjb.luacraft.lua.api.LuaVector3;
+
+import net.minecraft.block.Block;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class LuaWorld extends LuaTable {
     private final World world;
 
     public LuaWorld(World world) {
         this.world = world;
+
+        set("getName", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                return LuaValue.valueOf(world.getWorldInfo().getWorldName());
+            }
+        });
+
+        set("getSpawnPoint", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                BlockPos spawn = world.getSpawnPoint();
+                return new LuaVector3(spawn.getX(), spawn.getY(), spawn.getZ());
+            }
+        });
 
         set("getTime", new ZeroArgFunction() {
             @Override
@@ -61,14 +78,11 @@ public class LuaWorld extends LuaTable {
             @Override
             public LuaValue call(LuaValue arg) {
                 if (!arg.istable()) {
-                    return LuaValue.error("Expected table {x=..., y=..., z=...}");
+                    return LuaValue.error("Expected Vector3 table {x=..., y=..., z=...}");
                 }
 
-                double x = arg.get("x").checkdouble();
-                double y = arg.get("y").checkdouble();
-                double z = arg.get("z").checkdouble();
-
-                world.createExplosion(null, x, y, z, 4.0F, true);
+                LuaVector3 vec = LuaVector3.fromLuaTable(arg.checktable());
+                world.createExplosion(null, vec.x, vec.y, vec.z, 4.0F, true);
                 return LuaValue.NIL;
             }
         });
@@ -90,7 +104,7 @@ public class LuaWorld extends LuaTable {
                 LuaValue idVal = tbl.get("id");
 
                 if (!posVal.istable() || !idVal.isstring()) {
-                    return LuaValue.error("Expected table with { pos = {x=..,y=..,z=..}, id = 'minecraft:stone' }");
+                    return LuaValue.error("Expected table with { pos = Vector3, id = 'minecraft:block_id' }");
                 }
 
                 LuaVector3 vec = LuaVector3.fromLuaTable(posVal.checktable());
@@ -170,7 +184,7 @@ public class LuaWorld extends LuaTable {
         LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
                 "createExplosion",
                 "Creates an explosion at the given position.",
-                Arrays.asList(new LuaDocRegistry.Param("pos", "table", "Table with x, y, z")),
+                Arrays.asList(new LuaDocRegistry.Param("pos", "Vector3", "The position to explode at")),
                 Arrays.asList(),
                 true));
 
@@ -193,6 +207,13 @@ public class LuaWorld extends LuaTable {
                 "Sets the block at the given LuaBlock position.",
                 Arrays.asList(new LuaDocRegistry.Param("info", "table", "Table with 'block' (LuaBlock) and 'id'")),
                 Arrays.asList(new LuaDocRegistry.Return("boolean", "True if successful")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
+                "getSpawnPoint",
+                "Gets the world's default spawn location.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("Vector3", "The spawn point as a vector")),
                 true));
     }
 }

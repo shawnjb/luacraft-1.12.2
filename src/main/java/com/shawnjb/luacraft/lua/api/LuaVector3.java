@@ -61,6 +61,28 @@ public class LuaVector3 extends LuaTable {
                 return new LuaVector3(x / len, y / len, z / len);
             }
         });
+
+        set("distanceTo", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue other) {
+                LuaVector3 vec = fromLuaTable(other.checktable());
+                double dx = vec.x - x;
+                double dy = vec.y - y;
+                double dz = vec.z - z;
+                return LuaValue.valueOf(Math.sqrt(dx * dx + dy * dy + dz * dz));
+            }
+        });
+
+        set("toBlockPos", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                LuaTable tbl = new LuaTable();
+                tbl.set("x", (int) Math.floor(x));
+                tbl.set("y", (int) Math.floor(y));
+                tbl.set("z", (int) Math.floor(z));
+                return tbl;
+            }
+        });
     }
 
     public static class NewVectorFunction extends ThreeArgFunction {
@@ -131,6 +153,20 @@ public class LuaVector3 extends LuaTable {
                 "Returns a unit vector (normalized version).",
                 Arrays.asList(),
                 Arrays.asList(new LuaDocRegistry.Return("Vector3", "The normalized vector")),
+                true));
+
+        LuaDocRegistry.addMethod("Vector3", new LuaDocRegistry.FunctionDoc(
+                "distanceTo",
+                "Returns the Euclidean distance to another vector.",
+                Arrays.asList(new LuaDocRegistry.Param("other", "Vector3", "The target vector")),
+                Arrays.asList(new LuaDocRegistry.Return("number", "The distance between the vectors")),
+                true));
+
+        LuaDocRegistry.addMethod("Vector3", new LuaDocRegistry.FunctionDoc(
+                "toBlockPos",
+                "Returns an integer table for block position rounding down x/y/z.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("table", "A table with integer x, y, z")),
                 true));
     }
 }

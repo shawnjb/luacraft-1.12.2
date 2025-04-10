@@ -43,10 +43,22 @@ function mc.execute(command) end
 ---@return LuaEvent @The event binding handle
 function mc.bindToEvent(eventName, callback) end
 
----Gets the command sender for a player by name.
----@param playerName string
----@return LuaCommandSender @The command sender object for the player, or nil if not found
-function mc.getCommandSender(playerName) end
+---Returns a list of all currently online players.
+---@return LuaPlayer[] @The list of players currently online
+function mc.getOnlinePlayers() end
+
+---Gets a player by name, or nil if they are not online.
+---@param name string
+---@return LuaPlayer @The player object, or nil if not found
+function mc.getPlayer(name) end
+
+---Returns the current version of LuaCraft.
+---@return string @The version string
+function mc.getVersion() end
+
+---Returns the LuaJ engine version.
+---@return string @The LuaJ version
+function mc.getLuaJVersion() end
 
 ---Returns the name of the player.
 ---@return string @The player's name

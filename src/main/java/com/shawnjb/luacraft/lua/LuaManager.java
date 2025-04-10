@@ -1,6 +1,9 @@
 package com.shawnjb.luacraft.lua;
 
 import com.shawnjb.luacraft.lua.core.LuaMc;
+
+import net.minecraft.entity.player.EntityPlayerMP;
+
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.JsePlatform;
@@ -25,7 +28,6 @@ public class LuaManager {
 
     public static void init(File configDir) {
         globals = JsePlatform.standardGlobals();
-        globals.set("mc", new LuaMc());
 
         scriptsFolder = new File(configDir, "luacraft/scripts");
         autorunFolder = new File(scriptsFolder, "autorun");
@@ -109,6 +111,10 @@ public class LuaManager {
         }
     }
 
+    public static void runScript(File file) {
+        runScript(file, null);
+    }    
+
     public static void runScript(String code) {
         if (globals == null) {
             System.err.println("[LuaCraft] LuaManager not initialized!");
@@ -124,14 +130,19 @@ public class LuaManager {
         }
     }
 
-    public static void runScript(File file) {
+    public static void runScript(File file, EntityPlayerMP sender) {
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             StringBuilder builder = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
                 builder.append(line).append("\n");
             }
-            runScript(builder.toString());
+
+            Globals context = JsePlatform.standardGlobals();
+            context.set("mc", new LuaMc(sender != null ? new LuaPlayer(sender) : null));
+
+            LuaValue chunk = context.load(builder.toString(), file.getName());
+            chunk.call();
         } catch (IOException e) {
             System.err.println("[LuaCraft] Failed to run script '" + file.getName() + "': " + e.getMessage());
         } catch (Exception e) {

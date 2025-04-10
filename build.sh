@@ -1,9 +1,8 @@
 #!/bin/bash
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 echo -e "${GREEN}[*] Generating Lua API documentation...${NC}"
 ./gradlew generateLuaDocs --console=plain
@@ -15,7 +14,6 @@ fi
 
 echo -e "${GREEN}[*] Building project with LuaJ...${NC}"
 
-# Ensure LuaJ is included by building the project
 ./gradlew clean build --console=plain
 
 if [ $? -ne 0 ]; then
