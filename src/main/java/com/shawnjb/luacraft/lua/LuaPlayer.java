@@ -92,13 +92,28 @@ public class LuaPlayer extends LuaEntity {
             @Override
             public LuaValue call(LuaValue arg) {
                 String id = arg.checkjstring();
-                LuaValue luaStack = com.shawnjb.luacraft.lua.api.LuaItemStack.of(id, 1);
-                if (luaStack == null) {
-                    return LuaValue.FALSE;
+                int totalCount = 1;
+                if (!arg.arg(2).isnil()) {
+                    totalCount = arg.arg(2).checkint();
                 }
-                LuaItemStack stack = (LuaItemStack) luaStack.checkuserdata(LuaItemStack.class);
-                boolean success = player.inventory.addItemStackToInventory(stack.getHandle());
-                return LuaValue.valueOf(success);
+                totalCount = Math.max(1, Math.min(totalCount, 256));
+
+                final int maxStackSize = 64;
+                boolean overallSuccess = true;
+                int remaining = totalCount;
+
+                while (remaining > 0) {
+                    int stackCount = Math.min(remaining, maxStackSize);
+                    LuaValue luaStack = com.shawnjb.luacraft.lua.api.LuaItemStack.of(id, stackCount);
+                    if (luaStack == null) {
+                        return LuaValue.FALSE;
+                    }
+                    LuaItemStack itemStack = (LuaItemStack) luaStack.checkuserdata(LuaItemStack.class);
+                    boolean partSuccess = player.inventory.addItemStackToInventory(itemStack.getHandle());
+                    overallSuccess = overallSuccess && partSuccess;
+                    remaining -= stackCount;
+                }
+                return LuaValue.valueOf(overallSuccess);
             }
         });
 
@@ -162,11 +177,17 @@ public class LuaPlayer extends LuaEntity {
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
                 "giveItem",
                 "Gives an item to the player's inventory using a registry ID or a LuaItemStack. " +
-                        "If a string is provided, it is treated as a registry ID and a single item is created. " +
-                        "Returns true if the item was successfully added.",
-                Arrays.asList(new LuaDocRegistry.Param("item", "string|LuaItemStack",
-                        "The registry ID of the item (e.g. 'minecraft:stone') or a LuaItemStack")),
-                Arrays.asList(new LuaDocRegistry.Return("boolean", "True if the item was successfully added")),
+                        "If a string is provided as the first argument and an optional second argument is given as the amount, "
+                        +
+                        "the item is created in stacks. The amount is clamped between 1 and 256 (allowing up to 4 stacks of 64). "
+                        +
+                        "Returns true if all items were successfully added.",
+                Arrays.asList(
+                        new LuaDocRegistry.Param("item", "string|LuaItemStack",
+                                "The registry ID of the item (e.g. 'minecraft:stone') or a LuaItemStack"),
+                        new LuaDocRegistry.Param("count", "number|nil",
+                                "Optional total count to give (clamped between 1 and 256)")),
+                Arrays.asList(new LuaDocRegistry.Return("boolean", "True if the items were successfully added")),
                 true));
 
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(

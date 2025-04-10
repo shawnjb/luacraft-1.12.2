@@ -151,10 +151,11 @@ function LuaPlayer:addItem(item) end
 ---@param json string
 function LuaPlayer:sendTellraw(json) end
 
----Gives an item to the player's inventory using a registry ID or a LuaItemStack. If a string is provided, it is treated as a registry ID and a single item is created. Returns true if the item was successfully added.
+---Gives an item to the player's inventory using a registry ID or a LuaItemStack. If a string is provided as the first argument and an optional second argument is given as the amount, the item is created in stacks. The amount is clamped between 1 and 256 (allowing up to 4 stacks of 64). Returns true if all items were successfully added.
 ---@param item string|LuaItemStack
----@return boolean @True if the item was successfully added
-function LuaPlayer:giveItem(item) end
+---@param count number|nil
+---@return boolean @True if the items were successfully added
+function LuaPlayer:giveItem(item, count) end
 
 ---Adds a custom-created LuaItemStack to the player's inventory.
 ---@param itemStack LuaItemStack

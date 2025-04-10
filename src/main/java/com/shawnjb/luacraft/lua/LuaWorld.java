@@ -49,8 +49,6 @@ public class LuaWorld extends LuaTable {
         set("setTime", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
-                // Sets time relative to current day: newTime = currentDays * 24000 +
-                // providedTick
                 long relativeTicks = arg.checklong();
                 long current = world.getWorldTime();
                 long newAbsolute = current - (current % 24000) + relativeTicks;
@@ -62,7 +60,6 @@ public class LuaWorld extends LuaTable {
         set("setTimeAbsolute", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
-                // Sets the time absolutely.
                 world.setWorldTime(arg.checklong());
                 return LuaValue.NIL;
             }
@@ -71,8 +68,6 @@ public class LuaWorld extends LuaTable {
         set("setClockTime", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
-                // Expects a string "HH:MM:SS". Converts to ticks and sets time relative to
-                // current day.
                 String timeStr = arg.checkjstring();
                 long ticks = parseClockTime(timeStr);
                 long current = world.getWorldTime();
@@ -85,8 +80,6 @@ public class LuaWorld extends LuaTable {
         set("setClockTimeAbsolute", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
-                // Expects a string "HH:MM:SS". Converts to ticks and sets the world time
-                // absolutely.
                 String timeStr = arg.checkjstring();
                 long ticks = parseClockTime(timeStr);
                 world.setWorldTime(ticks);
@@ -97,7 +90,6 @@ public class LuaWorld extends LuaTable {
         set("setDaysPassed", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
-                // Accepts the number of days passed, preserving the current time-of-day.
                 long days = arg.checklong();
                 long current = world.getWorldTime();
                 long dayTime = current % 24000;
