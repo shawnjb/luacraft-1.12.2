@@ -1,6 +1,7 @@
 package com.shawnjb.luacraft.lua;
 
 import com.shawnjb.luacraft.docs.LuaDocRegistry;
+import com.shawnjb.luacraft.lua.api.LuaItemStack;
 import com.shawnjb.luacraft.lua.api.LuaVector3;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -105,12 +106,20 @@ public class LuaPlayer extends LuaTable {
         set("addItem", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
-                String name = arg.checkjstring();
-                Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(name));
-                if (item == null)
-                    return LuaValue.FALSE;
+                ItemStack stack;
 
-                ItemStack stack = new ItemStack(item);
+                if (arg.isuserdata(LuaItemStack.class)) {
+                    stack = ((com.shawnjb.luacraft.lua.api.LuaItemStack) arg
+                            .checkuserdata(com.shawnjb.luacraft.lua.api.LuaItemStack.class)).getHandle();
+                } else if (arg.isstring()) {
+                    Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(arg.tojstring()));
+                    if (item == null)
+                        return LuaValue.FALSE;
+                    stack = new ItemStack(item);
+                } else {
+                    return LuaValue.error("Expected item name string or LuaItemStack");
+                }
+
                 boolean success = player.inventory.addItemStackToInventory(stack);
                 return LuaValue.valueOf(success);
             }
@@ -205,9 +214,9 @@ public class LuaPlayer extends LuaTable {
 
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
                 "addItem",
-                "Adds an item to the player's inventory by name.",
-                Collections
-                        .singletonList(new LuaDocRegistry.Param("itemName", "string", "The registry name of the item")),
+                "Adds an item to the player's inventory.",
+                Collections.singletonList(new LuaDocRegistry.Param("item", "string|LuaItemStack",
+                        "The registry item ID or a LuaItemStack")),
                 Collections.singletonList(new LuaDocRegistry.Return("boolean", "True if added successfully")),
                 true));
 

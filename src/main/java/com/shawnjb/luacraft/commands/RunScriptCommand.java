@@ -7,8 +7,6 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentString;
 
-import java.io.File;
-
 public class RunScriptCommand extends CommandBase {
 
     @Override
@@ -23,22 +21,18 @@ public class RunScriptCommand extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) {
-        if (args.length != 1) {
-            sender.sendMessage(new TextComponentString("Usage: /runscript <scriptName>"));
+        if (args.length == 0) {
+            sender.sendMessage(new TextComponentString("Usage: /runscript <code>"));
             return;
         }
 
-        String scriptName = args[0];
-        File file = new File(LuaManager.getScriptsFolder(), scriptName);
-        if (file.exists() && file.isFile()) {
-            if (sender instanceof EntityPlayerMP) {
-                LuaManager.runScript(file, (EntityPlayerMP) sender);
-            } else {
-                LuaManager.runScript(file);
-            }
-            sender.sendMessage(new TextComponentString("[LuaCraft] Script executed: " + scriptName));
+        String code = String.join(" ", args);
+        if (sender instanceof EntityPlayerMP) {
+            LuaManager.runScript(code, (EntityPlayerMP) sender);
         } else {
-            sender.sendMessage(new TextComponentString("[LuaCraft] Script not found: " + scriptName));
+            LuaManager.runScript(code);
         }
+
+        sender.sendMessage(new TextComponentString("[LuaCraft] Lua code executed."));
     }
 }

@@ -113,7 +113,7 @@ public class LuaManager {
 
     public static void runScript(File file) {
         runScript(file, null);
-    }    
+    }
 
     public static void runScript(String code) {
         if (globals == null) {
@@ -126,6 +126,19 @@ public class LuaManager {
             chunk.call();
         } catch (Exception e) {
             System.err.println("[LuaCraft] Lua error while running code:\n" + code);
+            e.printStackTrace();
+        }
+    }
+
+    public static void runScript(String code, EntityPlayerMP sender) {
+        Globals context = JsePlatform.standardGlobals();
+        context.set("mc", new LuaMc(sender != null ? new LuaPlayer(sender) : null));
+
+        try {
+            LuaValue chunk = context.load(code, "inline");
+            chunk.call();
+        } catch (Exception e) {
+            System.err.println("[LuaCraft] Error executing inline script:");
             e.printStackTrace();
         }
     }

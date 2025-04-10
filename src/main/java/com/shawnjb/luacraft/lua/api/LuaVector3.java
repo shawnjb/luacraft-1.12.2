@@ -110,6 +110,10 @@ public class LuaVector3 extends LuaTable {
     public static void registerDocs() {
         LuaDocRegistry.addGlobalClass("Vector3", "A 3D vector with x, y, z and math methods.");
 
+        LuaDocRegistry.addField("Vector3", new LuaDocRegistry.FieldDoc("x", "number", "The X coordinate"));
+        LuaDocRegistry.addField("Vector3", new LuaDocRegistry.FieldDoc("y", "number", "The Y coordinate"));
+        LuaDocRegistry.addField("Vector3", new LuaDocRegistry.FieldDoc("z", "number", "The Z coordinate"));
+
         LuaDocRegistry.addFunction("Vector3", new LuaDocRegistry.FunctionDoc(
                 "new",
                 "Creates a new 3D vector.",

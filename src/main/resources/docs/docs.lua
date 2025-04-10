@@ -12,6 +12,9 @@ local LuaPlayer = {}
 local LuaWorld = {}
 
 ---@class Vector3
+---@field x number @The X coordinate
+---@field y number @The Y coordinate
+---@field z number @The Z coordinate
 Vector3 = {}
 
 ---@class LuaMaterial
@@ -60,6 +63,18 @@ function mc.getVersion() end
 ---@return string @The LuaJ version
 function mc.getLuaJVersion() end
 
+---Summons an entity at a specific position.
+---@param entityId string
+---@param pos Vector3
+---@return boolean @True if the entity was spawned
+function mc.summonEntity(entityId, pos) end
+
+---Creates a LuaItemStack from a registry ID and count.
+---@param itemId string
+---@param count number
+---@return LuaItemStack @The created item stack or nil if invalid
+function mc.createItemStack(itemId, count) end
+
 ---Returns the name of the player.
 ---@return string @The player's name
 function LuaPlayer:getName() end
@@ -100,10 +115,14 @@ function LuaPlayer:kill() end
 ---@return string|nil @Name of the held item or nil if empty
 function LuaPlayer:getHeldItem(hand) end
 
----Adds an item to the player's inventory by name.
----@param itemName string
+---Adds an item to the player's inventory.
+---@param item string|LuaItemStack
 ---@return boolean @True if added successfully
-function LuaPlayer:addItem(itemName) end
+function LuaPlayer:addItem(item) end
+
+---Gets the player's current position as a Vector3.
+---@return Vector3 @The player's position as a vector
+function LuaPlayer:getPosition() end
 
 ---Gets the current world time.
 ---@return number @The world time in ticks
@@ -126,7 +145,7 @@ function LuaWorld:isRaining() end
 function LuaWorld:setRaining(raining) end
 
 ---Creates an explosion at the given position.
----@param pos table
+---@param pos Vector3
 function LuaWorld:createExplosion(pos) end
 
 ---Returns a LuaBlock at the given position.
@@ -143,6 +162,10 @@ function LuaWorld:setBlockAt(info) end
 ---@param info table
 ---@return boolean @True if successful
 function LuaWorld:setBlock(info) end
+
+---Gets the world's default spawn location.
+---@return Vector3 @The spawn point as a vector
+function LuaWorld:getSpawnPoint() end
 
 ---Creates a new 3D vector.
 ---@param x number
@@ -173,6 +196,15 @@ function Vector3:length() end
 ---Returns a unit vector (normalized version).
 ---@return Vector3 @The normalized vector
 function Vector3:normalize() end
+
+---Returns the Euclidean distance to another vector.
+---@param other Vector3
+---@return number @The distance between the vectors
+function Vector3:distanceTo(other) end
+
+---Returns an integer table for block position rounding down x/y/z.
+---@return table @A table with integer x, y, z
+function Vector3:toBlockPos() end
 
 ---Returns the material name (fallback via toString).
 ---@return string @Material name
@@ -205,6 +237,23 @@ function LuaItemStack:setCount(count) end
 ---Returns true if the item stack is empty.
 ---@return boolean
 function LuaItemStack:isEmpty() end
+
+---Gets the current damage value (durability) of the item.
+---@return number @The damage value
+function LuaItemStack:getDamage() end
+
+---Sets the damage value (durability) of the item.
+---@param damage number
+function LuaItemStack:setDamage(damage) end
+
+---Returns the display name of the item.
+---@return string @The item display name
+function LuaItemStack:getDisplayName() end
+
+---Sets the username displayed on a player head item.
+---@param name string
+---@return boolean @True if successful
+function LuaItemStack:setUsername(name) end
 
 ---Returns the entity's internal ID.
 ---@return number @The entity ID

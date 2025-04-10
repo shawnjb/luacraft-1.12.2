@@ -1,18 +1,27 @@
 package com.shawnjb.luacraft.lua.core;
 
+import java.util.Arrays;
+
+import org.luaj.vm2.Lua;
+import org.luaj.vm2.LuaTable;
+import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.lib.OneArgFunction;
+import org.luaj.vm2.lib.TwoArgFunction;
+import org.luaj.vm2.lib.ZeroArgFunction;
+
 import com.shawnjb.luacraft.docs.LuaDocRegistry;
 import com.shawnjb.luacraft.lua.LuaEventManager;
 import com.shawnjb.luacraft.lua.LuaPlayer;
 import com.shawnjb.luacraft.lua.api.LuaVector3;
 
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityList;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.world.World;
 import net.minecraftforge.fml.common.FMLCommonHandler;
-import org.luaj.vm2.*;
-import org.luaj.vm2.lib.*;
-
-import java.util.Arrays;
 
 public class LuaMc extends LuaTable {
 
@@ -24,12 +33,24 @@ public class LuaMc extends LuaTable {
         set("getPlayer", new GetPlayerFunction());
         set("getVersion", new GetVersionFunction());
         set("getLuaJVersion", new GetLuaJVersionFunction());
+        set("summonEntity", new SummonEntityFunction());
+        set("createItemStack", new CreateItemStackFunction());
 
         // Register global Vector3 class
         LuaVector3.registerGlobal(this);
 
         if (sender != null) {
             set("sender", sender);
+        }
+    }
+
+    private static class CreateItemStackFunction extends TwoArgFunction {
+        @Override
+        public LuaValue call(LuaValue idVal, LuaValue countVal) {
+            String id = idVal.checkjstring();
+            int count = countVal.checkint();
+            LuaValue itemStack = com.shawnjb.luacraft.lua.api.LuaItemStack.of(id, count);
+            return itemStack != null ? itemStack : LuaValue.NIL;
         }
     }
 
@@ -112,6 +133,29 @@ public class LuaMc extends LuaTable {
         }
     }
 
+    private static class SummonEntityFunction extends TwoArgFunction {
+        @Override
+        public LuaValue call(LuaValue entityId, LuaValue posTable) {
+            MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+            if (server == null || server.getWorld(0) == null) {
+                return LuaValue.error("World not available");
+            }
+
+            World world = server.getWorld(0);
+            LuaVector3 vec = LuaVector3.fromLuaTable(posTable.checktable());
+            ResourceLocation entityRes = new ResourceLocation(entityId.checkjstring());
+
+            Entity entity = EntityList.createEntityByIDFromName(entityRes, world);
+            if (entity == null) {
+                return LuaValue.error("Unknown entity ID: " + entityId.tojstring());
+            }
+
+            entity.setPosition(vec.x, vec.y, vec.z);
+            world.spawnEntity(entity);
+            return LuaValue.TRUE;
+        }
+    }
+
     public static void registerDocs() {
         LuaDocRegistry.addGlobalClass("mc");
 
@@ -139,13 +183,15 @@ public class LuaMc extends LuaTable {
                 "getOnlinePlayers",
                 "Returns a list of all currently online players.",
                 Arrays.asList(),
-                Arrays.asList(new LuaDocRegistry.Return("LuaPlayer[]", "The list of players currently online")), false));
+                Arrays.asList(new LuaDocRegistry.Return("LuaPlayer[]", "The list of players currently online")),
+                false));
 
         LuaDocRegistry.addFunction("mc", new LuaDocRegistry.FunctionDoc(
                 "getPlayer",
                 "Gets a player by name, or nil if they are not online.",
                 Arrays.asList(new LuaDocRegistry.Param("name", "string", "The name of the player")),
-                Arrays.asList(new LuaDocRegistry.Return("LuaPlayer", "The player object, or nil if not found")), false));
+                Arrays.asList(new LuaDocRegistry.Return("LuaPlayer", "The player object, or nil if not found")),
+                false));
 
         LuaDocRegistry.addFunction("mc", new LuaDocRegistry.FunctionDoc(
                 "getVersion",
@@ -158,5 +204,22 @@ public class LuaMc extends LuaTable {
                 "Returns the LuaJ engine version.",
                 Arrays.asList(),
                 Arrays.asList(new LuaDocRegistry.Return("string", "The LuaJ version")), false));
+
+        LuaDocRegistry.addFunction("mc", new LuaDocRegistry.FunctionDoc(
+                "summonEntity",
+                "Summons an entity at a specific position.",
+                Arrays.asList(
+                        new LuaDocRegistry.Param("entityId", "string", "The entity ID (e.g. 'minecraft:zombie')"),
+                        new LuaDocRegistry.Param("pos", "Vector3", "The spawn position")),
+                Arrays.asList(new LuaDocRegistry.Return("boolean", "True if the entity was spawned")), false));
+
+        LuaDocRegistry.addFunction("mc", new LuaDocRegistry.FunctionDoc(
+                "createItemStack",
+                "Creates a LuaItemStack from a registry ID and count.",
+                Arrays.asList(
+                        new LuaDocRegistry.Param("itemId", "string", "The item registry ID (e.g. 'minecraft:stone')"),
+                        new LuaDocRegistry.Param("count", "number", "The number of items in the stack")),
+                Arrays.asList(new LuaDocRegistry.Return("LuaItemStack", "The created item stack or nil if invalid")),
+                false));
     }
 }
