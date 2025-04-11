@@ -123,16 +123,26 @@ public class LuaWorld extends LuaTable {
         set("createExplosion", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
-                if (!arg.istable()) {
-                    return LuaValue.error("Expected Vector3 table {x=..., y=..., z=...}");
+                try {
+                    LuaVector3 vec;
+        
+                    if (arg instanceof LuaVector3) {
+                        vec = (LuaVector3) arg;
+                    } else if (arg.istable()) {
+                        vec = LuaVector3.fromLuaTable(arg.checktable());
+                    } else {
+                        return LuaValue.error("Expected Vector3 table or LuaVector3");
+                    }
+        
+                    world.createExplosion(null, vec.x, vec.y, vec.z, 4.0F, true);
+                } catch (Exception e) {
+                    return LuaValue.error("Invalid Vector3: " + e.getMessage());
                 }
-
-                LuaVector3 vec = LuaVector3.fromLuaTable(arg.checktable());
-                world.createExplosion(null, vec.x, vec.y, vec.z, 4.0F, true);
+        
                 return LuaValue.NIL;
             }
         });
-
+        
         set("getBlockAt", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {

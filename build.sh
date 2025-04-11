@@ -22,10 +22,3 @@ fi
 
 echo -e "${GREEN}[✓] Build complete with LuaJ compiled. Artifacts are in build/libs/${NC}"
 
-echo -e "${GREEN}[*] Launching Minecraft client...${NC}"
-./gradlew runClient --console=plain
-
-if [ $? -ne 0 ]; then
-    echo -e "${RED}[!] Failed to launch Minecraft client.${NC}"
-    exit 1
-fi

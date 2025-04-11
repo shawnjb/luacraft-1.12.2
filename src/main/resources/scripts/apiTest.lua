@@ -1,20 +1,33 @@
-mc.broadcast("Starting safe LuaCraft test script...")
+--- @type LuaPlayer
+local player = sender or mc.getOnlinePlayers()[1]
+
+local function tell(msg)
+    if player and player.sendTellrawFromTable then
+        player:sendTellrawFromTable({
+            { text = "§7[§dLuaCraft§7] " },
+            { text = msg }
+        })
+    else
+        mc.broadcast("[LuaCraft] " .. msg)
+    end
+end
+
+tell("Starting safe LuaCraft test script...")
 
 -- Try a harmless chat message
-mc.broadcast("Testing /say command...")
+tell("Testing /say command...")
 mc.execute("/say Hello from LuaCraft!")
 
 -- Set the time to day (safe, visual)
-mc.broadcast("Setting time to day...")
+tell("Setting time to day...")
 mc.execute("/time set day")
 
 -- Gently teleport player to their current position plus a few blocks up
-local player = sender or mc.getOnlinePlayers()[1]
 if player then
     local name = player:getName()
     local pos = player:getPosition()
     if pos then
-        mc.broadcast("Teleporting player " .. name .. " slightly upward...")
+        tell("Teleporting player " .. name .. " slightly upward...")
         local safeX = math.floor(pos.x)
         local safeY = math.floor(pos.y + 5)
         local safeZ = math.floor(pos.z)
@@ -23,11 +36,11 @@ if player then
 end
 
 -- Give a single harmless item
-mc.broadcast("Giving player a stick...")
+tell("Giving player a stick...")
 mc.execute("/give @p stick 1")
 
 -- List players
-mc.broadcast("Listing players...")
+tell("Listing players...")
 mc.execute("/list")
 
-mc.broadcast("Safe test complete.")
+tell("Safe test complete.")

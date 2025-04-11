@@ -1,6 +1,7 @@
 package com.shawnjb.luacraft.docs;
 
 import com.shawnjb.luacraft.docs.LuaDocRegistry.FieldDoc;
+import com.shawnjb.luacraft.LuaLogger;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -31,14 +32,14 @@ public class LuaDocGenerator {
         }
 
         try {
-            System.out.println("[LuaDocGenerator] Running LuaDocBootstrap...");
+            LuaLogger.LOGGER.info("[LuaDocGenerator] Running LuaDocBootstrap...");
             LuaDocBootstrap.registerAll();
 
             Set<String> classNames = LuaDocRegistry.getAllClasses();
             Map<String, List<LuaDocRegistry.FunctionDoc>> docs = LuaDocRegistry.getAllFunctions();
 
-            System.out.println("[LuaDocGenerator] Classes registered: " + classNames.size());
-            System.out.println(
+            LuaLogger.LOGGER.info("[LuaDocGenerator] Classes registered: " + classNames.size());
+            LuaLogger.LOGGER.info(
                     "[LuaDocGenerator] Functions registered: " + docs.values().stream().mapToInt(List::size).sum());
 
             try (BufferedWriter writer = Files.newBufferedWriter(outputPath)) {
@@ -122,7 +123,7 @@ public class LuaDocGenerator {
                     writer.write(String.format("%s = nil\n\n", field.name));
                 }
 
-                System.out.println("[LuaDocGenerator] docs.lua generated at: " + outputPath.toAbsolutePath());
+                LuaLogger.LOGGER.info("[LuaDocGenerator] docs.lua generated at: " + outputPath.toAbsolutePath());
             }
 
         } catch (Exception e) {

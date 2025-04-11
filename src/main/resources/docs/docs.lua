@@ -155,9 +155,13 @@ function LuaPlayer:getHeldItem(hand) end
 ---@return boolean @True if added successfully
 function LuaPlayer:addItem(item) end
 
----Sends a raw JSON-formatted chat message to the player. Accepts JSON strings such as '{"rawtext":[{"text":"§aExample "},{"text":"§e§lText"}]}' or '{"rawtext":[{"text":"§aExample §e§lText"}]}' and falls back to plain text if the JSON is invalid.
+---Sends a raw JSON-formatted chat message to the player. Accepts either a tellraw array (e.g. '[{"text":"hello"}]') or a fallback string with formatting codes like '§aHello world'. Parses the message and shows it with formatting.
 ---@param json string
 function LuaPlayer:sendTellraw(json) end
+
+---Sends a formatted chat message using a Lua table representing a tellraw-style JSON array. Supports Minecraft 1.12.2 structure including hoverEvent, clickEvent, and formatting like color and bold. Each table entry must be either a plain string (sent directly) or a table with keys like 'text', 'color', 'bold', etc.
+---@param parts table
+function LuaPlayer:sendTellrawFromTable(parts) end
 
 ---Gives an item to the player's inventory using a registry ID. Accepts an optional second argument for the total count to give. If the total count is above 64, the items are split into multiple stacks (clamped between 1 and 256). Returns true if all items were successfully added.
 ---@param item string
@@ -433,6 +437,18 @@ function LuaItemStack:setLore(lore) end
 ---@param bookInfo table
 ---@return boolean @True if the book content was successfully set
 function LuaItemStack:setBookContent(bookInfo) end
+
+---Returns the quantity of items in the stack (same as getCount).
+---@return number @The stack amount
+function LuaItemStack:getAmount() end
+
+---Returns the block material type of the item, if applicable.
+---@return LuaMaterial|nil @The item's material, or nil if not applicable
+function LuaItemStack:getMaterial() end
+
+---Returns the registry ID of the item as a string (e.g., 'minecraft:stone'). This mirrors the behavior of getType() from LuaCraftBeta.
+---@return string @The registry ID of the item
+function LuaItemStack:getType() end
 
 ---Returns the position of the block as a Vector3.
 ---@return Vector3 @Block position

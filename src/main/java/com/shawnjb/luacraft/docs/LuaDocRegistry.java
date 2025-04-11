@@ -1,6 +1,7 @@
 package com.shawnjb.luacraft.docs;
 
 import java.util.*;
+import com.shawnjb.luacraft.LuaLogger;
 
 public class LuaDocRegistry {
 
@@ -129,7 +130,7 @@ public class LuaDocRegistry {
                         func.isMethod);
                 addFunction(childClass, copy);
             }
-            System.out.println("Inherited " + parentFunctions.size() + " methods from " + parentClass + " to " + childClass);
+            LuaLogger.LOGGER.info("Inherited " + parentFunctions.size() + " methods from " + parentClass + " to " + childClass);
         }
     
         List<FieldDoc> parentFields = fieldDocs.get(parentClass);

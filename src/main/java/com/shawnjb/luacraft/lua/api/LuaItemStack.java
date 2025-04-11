@@ -1,6 +1,8 @@
 package com.shawnjb.luacraft.lua.api;
 
 import com.shawnjb.luacraft.docs.LuaDocRegistry;
+
+import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -13,6 +15,9 @@ import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.TwoArgFunction;
 import org.luaj.vm2.lib.ZeroArgFunction;
+
+import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -260,6 +265,38 @@ public class LuaItemStack extends LuaTable {
                 return LuaValue.TRUE;
             }
         });
+
+        set("getAmount", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                return LuaValue.valueOf(stack.getCount());
+            }
+        });
+
+        set("getMaterial", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                if (stack.getItem() == null)
+                    return LuaValue.NIL;
+
+                Block block = Block.getBlockFromItem(stack.getItem());
+                if (block == Blocks.AIR)
+                    return LuaValue.NIL;
+
+                Material material = block.getDefaultState().getMaterial();
+                return new LuaMaterial(material);
+            }
+        });
+
+        set("getType", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                if (stack.getItem() == null || stack.getItem().getRegistryName() == null)
+                    return LuaValue.NIL;
+
+                return LuaValue.valueOf(stack.getItem().getRegistryName().toString());
+            }
+        });
     }
 
     public ItemStack getHandle() {
@@ -380,6 +417,29 @@ public class LuaItemStack extends LuaTable {
                 Arrays.asList(new LuaDocRegistry.Param("bookInfo", "table",
                         "Table with keys 'title' (string), 'author' (string), and 'pages' (table of strings)")),
                 Arrays.asList(new LuaDocRegistry.Return("boolean", "True if the book content was successfully set")),
+                true));
+
+        LuaDocRegistry.addMethod("LuaItemStack", new LuaDocRegistry.FunctionDoc(
+                "getAmount",
+                "Returns the quantity of items in the stack (same as getCount).",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("number", "The stack amount")),
+                true));
+
+        LuaDocRegistry.addMethod("LuaItemStack", new LuaDocRegistry.FunctionDoc(
+                "getMaterial",
+                "Returns the block material type of the item, if applicable.",
+                Arrays.asList(),
+                Arrays.asList(
+                        new LuaDocRegistry.Return("LuaMaterial|nil", "The item's material, or nil if not applicable")),
+                true));
+
+        LuaDocRegistry.addMethod("LuaItemStack", new LuaDocRegistry.FunctionDoc(
+                "getType",
+                "Returns the registry ID of the item as a string (e.g., 'minecraft:stone'). " +
+                        "This mirrors the behavior of getType() from LuaCraftBeta.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("string", "The registry ID of the item")),
                 true));
     }
 }

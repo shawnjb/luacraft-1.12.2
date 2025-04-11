@@ -3,15 +3,14 @@ local chatCommandEvent = _G.chatCommandEvent
 if type(chatCommandEvent) == 'table' and type(chatCommandEvent.disconnect) == 'function' then
     chatCommandEvent:disconnect()
 end
+
 chatCommandEvent = mc.bindToEvent("ServerChat", function(event)
     --- @type LuaPlayer
     local player = event.player
     --- @type string
     local message = event.message
 
-    if not message:find("^:") then 
-        return
-    end
+    if not message:find("^:") then return end
 
     local args = {}
     for word in message:gmatch("%S+") do
@@ -59,7 +58,7 @@ chatCommandEvent = mc.bindToEvent("ServerChat", function(event)
                         table.insert(result, p)
                         seen[name] = true
                     else
-                        player:sendTellraw('{"rawtext":[{"text":"couldn\'t find player: ' .. name .. '"}]}')
+                        player:sendTellrawFromTable({ { text = "couldn't find player: " .. name } })
                     end
                 end
             end
@@ -67,284 +66,178 @@ chatCommandEvent = mc.bindToEvent("ServerChat", function(event)
         end
     end
 
+    local function sendSuccess(p, msg)
+        p:sendTellrawFromTable({ { text = "§a" .. msg } })
+    end
+
+    local function sendError(p, msg)
+        p:sendTellrawFromTable({ { text = "§c" .. msg } })
+    end
+
+    local function sendToTarget(p, msg)
+        p:sendTellrawFromTable({ { text = msg } })
+    end
+
     local abusiveCommands = {
-        --- @param player LuaPlayer
-        --- @param args string[]
-        kill = function(player, args)
+        kill = function(p, args)
             local targets = resolveTargets(args[2])
-            for _, p in ipairs(targets) do
-                p:kill()
-                p:sendTellraw('{"rawtext":[{"text":"§cYou have been slain by a command."}]}')
-            end            
-            player:sendTellraw('{"rawtext":[{"text":"§aKilled ' .. #targets .. ' player(s)"}]}')
+            for _, t in ipairs(targets) do
+                t:kill()
+                sendToTarget(t, "§cYou have been slain by a command.")
+            end
+            sendSuccess(p, "Killed " .. #targets .. " player(s).")
         end,
 
-        teleport = function(player, args)
+        teleport = function(p, args)
             local sources = resolveTargets(args[2])
-            local targetPlayer = findPlayerByName(args[3] or "")
-            if not targetPlayer then
-                player:sendTellraw('{"rawtext":[{"text":"§cCouldn\'t find target player: ' .. (args[3] or "nil") .. '"}]}')
+            local destination = findPlayerByName(args[3] or "")
+            if not destination then
+                sendError(p, "Couldn't find target player: " .. (args[3] or "nil"))
                 return
             end
-            local targetPos = targetPlayer:getPosition()
-            for _, p in ipairs(sources) do
-                p:setPosition(targetPos)
-                p:sendTellraw('{"rawtext":[{"text":"§aYou were teleported to ' .. targetPlayer:getName() .. '"}]}')
+            local pos = destination:getPosition()
+            for _, t in ipairs(sources) do
+                t:setPosition(pos)
+                sendToTarget(t, "§aYou were teleported to " .. destination:getName())
             end
-            player:sendTellraw('{"rawtext":[{"text":"§aTeleported ' .. #sources .. ' player(s) to ' .. targetPlayer:getName() .. '"}]}')
+            sendSuccess(p, "Teleported " .. #sources .. " player(s) to " .. destination:getName())
         end,
 
-        explode = function(player, args)
+        explode = function(p, args)
             local targets = resolveTargets(args[2] or "me")
-            for _, p in ipairs(targets) do
-                world:createExplosion(p:getPosition())
-                p:sendTellraw('{"rawtext":[{"text":"§eBoom!"}]}')
+            for _, t in ipairs(targets) do
+                p:getWorld():createExplosion(t:getPosition())
+                sendToTarget(t, "§eBoom!")
             end
-            player:sendTellraw('{"rawtext":[{"text":"§aExploded ' .. #targets .. ' player(s)"}]}')
+            sendSuccess(p, "Exploded " .. #targets .. " player(s).")
         end,
 
-        smite = function(player, args)
+        smite = function(p, args)
             local targets = resolveTargets(args[2])
-            for _, p in ipairs(targets) do
-                world:strikeLightning(p:getPosition())
-                p:sendTellraw('{"rawtext":[{"text":"§cYou were smitten!"}]}')
+            for _, t in ipairs(targets) do
+                p:getWorld():strikeLightning(t:getPosition())
+                sendToTarget(t, "§cYou were smitten!")
             end
-            player:sendTellraw('{"rawtext":[{"text":"§aSmitten ' .. #targets .. ' player(s)"}]}')
+            sendSuccess(p, "Smitten " .. #targets .. " player(s).")
         end,
 
-        give = function(player, args)
-            local targetArg, itemArg, amountArg
-            if args[4] then
-                targetArg = args[2]
-                itemArg = args[3]
-                amountArg = args[4]
-            elseif args[3] then
-                targetArg = "me"
-                itemArg = args[2]
-                amountArg = args[3]
-            else
-                player:sendTellraw('{"rawtext":[{"text":"§cUsage: :give [target] <item> <amount>"}]}')
-                return
-            end
-            local targets = resolveTargets(targetArg)
-            local amount = tonumber(amountArg) or 1
-            -- Use the new item registry ID (e.g., "minecraft:stone") directly.
-            for _, p in ipairs(targets) do
-                p:giveItem(itemArg, amount)
-                p:sendTellraw('{"rawtext":[{"text":"§aYou received ' .. amount .. ' of ' .. itemArg .. '"}]}')
-            end
-            player:sendTellraw('{"rawtext":[{"text":"§aGave ' .. amount .. 'x ' .. itemArg .. ' to ' .. #targets .. ' player(s)"}]}')
-        end,        
-
-        time = function(player, args)
-            local timeArg = args[2] and args[2]:lower() or nil
-            if not timeArg then
-                player:sendTellraw('{"rawtext":[{"text":"§cUsage: :time [day|night|<number>]"}]}')
-                return
-            end
-            if timeArg == "day" then
-                world:setTime(0)
-                player:sendTellraw('{"rawtext":[{"text":"§aTime set to day (0)"}]}')
-            elseif timeArg == "night" then
-                world:setTime(13000)
-                player:sendTellraw('{"rawtext":[{"text":"§aTime set to night (13000)"}]}')
-            else
-                local customTime = tonumber(timeArg)
-                if customTime and customTime >= 0 and customTime <= 24000 then
-                    world:setTime(customTime)
-                    player:sendTellraw('{"rawtext":[{"text":"§aTime set to ' .. customTime .. '"}]}')
-                else
-                    player:sendTellraw('{"rawtext":[{"text":"§cInvalid time value: ' .. tostring(timeArg) .. '"}]}')
-                end
-            end
-        end,
-
-        fire = function(player, args)
+        fire = function(p, args)
             local targets = resolveTargets(args[2] or "me")
             local ticks = tonumber(args[3]) or 100
-            for _, p in ipairs(targets) do
-                p:setFireTicks(ticks)
-                p:sendTellraw('{"rawtext":[{"text":"§cYou were set on fire!"}]}')
+            for _, t in ipairs(targets) do
+                t:setFireTicks(ticks)
+                sendToTarget(t, "§cYou were set on fire!")
             end
-            player:sendTellraw('{"rawtext":[{"text":"§aSet ' .. #targets .. ' player(s) on fire for ' .. ticks .. ' ticks."}]}')
+            sendSuccess(p, "Set " .. #targets .. " player(s) on fire for " .. ticks .. " ticks.")
         end,
 
-        summon = function(player, args)
-            local entityName = args[2]
-            local count = tonumber(args[3]) or 1
-            local targetArg = args[4] or "me"
-            if not entityName then
-                player:sendTellraw('{"rawtext":[{"text":"§cUsage: :summon <entity> <count> <target>"}]}')
-                return
-            end
-            count = math.max(1, math.min(count, 100))
-            local targets = resolveTargets(targetArg)
-            local total = 0
-            for _, p in ipairs(targets) do
-                local pos = p:getPosition()
-                for i = 1, count do
-                    local result = mc.summonEntity(entityName, pos)
-                    if result and type(result) == "table" and result.getType then
-                        total = total + 1
-                    end
-                end
-                p:sendTellraw('{"rawtext":[{"text":"§aSummoned ' .. count .. ' ' .. entityName .. '(s) at your location"}]}')
-            end
-            player:sendTellraw('{"rawtext":[{"text":"§aSummoned a total of ' .. total .. ' ' .. entityName .. '(s)"}]}')
-        end,
-
-        randomtp = function(player, args)
+        unfire = function(p, args)
             local targets = resolveTargets(args[2] or "me")
-            local radius = tonumber(args[3]) or 1000
-            local origin = player:getPosition()
-            local function getRandomOffset()
-                return math.random(-radius, radius)
+            for _, t in ipairs(targets) do
+                t:setFireTicks(0)
+                sendToTarget(t, "§aYou are no longer on fire.")
             end
-            local function getSafeY(x, z)
-                for y = 127, 1, -1 do
-                    local block = world:getBlockAt(Vector3.new(x, y, z))
-                    if block and block:isSolid() then
-                        local head = world:getBlockAt(Vector3.new(x, y + 1, z))
-                        local above = world:getBlockAt(Vector3.new(x, y + 2, z))
-                        if head and not head:isSolid() and above and not above:isSolid() then
-                            return y + 1
-                        end
-                    end
-                end
-                return nil
-            end
-            for _, p in ipairs(targets) do
-                local dx = getRandomOffset()
-                local dz = getRandomOffset()
-                local x = origin.x + dx
-                local z = origin.z + dz
-                local y = getSafeY(x, z)
-                if type(y) == 'number' then
-                    p:setPosition(Vector3.new(x, y, z))
-                    p:sendTellraw('{"rawtext":[{"text":"§aYou have been randomly teleported."}]}')
-                end
-            end
-            player:sendTellraw('{"rawtext":[{"text":"§aRandomly teleported ' .. #targets .. ' player(s) within radius ' .. radius .. '"}]}')
+            sendSuccess(p, "Extinguished " .. #targets .. " player(s).")
         end,
 
-        heal = function(player, args)
+        heal = function(p, args)
             local targets = resolveTargets(args[2] or "me")
-            local count = 0
-            for _, p in ipairs(targets) do
-                local max = p:getMaxHealth()
-                if type(max) == 'number' then
-                    p:setHealth(max)
-                    p:sendTellraw('{"rawtext":[{"text":"§aYou have been fully healed."}]}')
-                    count = count + 1
+            local healed = 0
+            for _, t in ipairs(targets) do
+                local max = t:getMaxHealth()
+                if type(max) == "number" then
+                    t:setHealth(max)
+                    sendToTarget(t, "§aYou have been fully healed.")
+                    healed = healed + 1
                 end
             end
-            player:sendTellraw('{"rawtext":[{"text":"§aHealed ' .. count .. ' player(s)."}]}')
+            sendSuccess(p, "Healed " .. healed .. " player(s).")
         end,
     }
 
-    local function extinguishPlayers(player, args)
-        local targets = resolveTargets(args[2] or "me")
-        for _, p in ipairs(targets) do
-            p:setFireTicks(0)
-            p:sendTellraw('{"rawtext":[{"text":"§aYou are no longer on fire."}]}')
-        end
-        player:sendTellraw('{"rawtext":[{"text":"§aExtinguished ' .. #targets .. ' player(s)"}]}')
-    end
-
-    abusiveCommands.unfire = extinguishPlayers
-    abusiveCommands.nofire = extinguishPlayers
+    abusiveCommands.nofire = abusiveCommands.unfire
 
     local nonAbusiveCommands = {
-        --- @param player LuaPlayer
-        help = function(player)
-            player:sendTellraw('{"rawtext":[{"text":"§cCommand help is limited in legacy chat."}] }')
-            player:sendTellraw('{"rawtext":[{"text":"§cRead the source file or ask an op/dev for help."}] }')
+        help = function(p)
+            sendError(p, "Command help is limited in legacy chat.")
+            sendError(p, "Read the source file or ask an op/dev for help.")
         end,
 
-        --- @param player LuaPlayer
-        ping = function(player)
-            player:sendTellraw('{"rawtext":[{"text":"§aPong"}]}')
+        ping = function(p)
+            sendSuccess(p, "Pong")
         end,
 
-        --- @param player LuaPlayer
-        coords = function(player)
-            local pos = player:getPosition()
-            player:sendTellraw('{"rawtext":[{"text":"§aYour position is: x=' .. string.format("%.2f", pos.x) .. " y=" .. string.format("%.2f", pos.y) .. " z=" .. string.format("%.2f", pos.z) .. '"}]}')
+        coords = function(p)
+            local pos = p:getPosition()
+            sendSuccess(p, string.format("Your position is: x=%.2f y=%.2f z=%.2f", pos.x, pos.y, pos.z))
         end,
 
-        --- @param player LuaPlayer
-        dimension = function(player)
-            player:sendTellraw('{"rawtext":[{"text":"§aYou are in: ' .. player:getDimension() .. '"}]}')
+        dimension = function(p)
+            sendSuccess(p, "You are in: " .. p:getDimension())
         end,
 
-        --- @param player LuaPlayer
-        who = function(player)
-            local players = world:getPlayers()
+        who = function(p)
             local names = {}
-            for _, p in ipairs(players) do
-                table.insert(names, p:getName())
+            for _, pl in ipairs(world:getPlayers()) do
+                table.insert(names, pl:getName())
             end
-            player:sendTellraw('{"rawtext":[{"text":"§aOnline players: ' .. table.concat(names, ", ") .. '"}]}')
+            sendSuccess(p, "Online players: " .. table.concat(names, ", "))
         end,
 
-        --- @param player LuaPlayer
-        health = function(player)
-            player:sendTellraw('{"rawtext":[{"text":"§aYour health: ' .. player:getHealth() .. " / " .. player:getMaxHealth() .. '"}]}')
+        health = function(p)
+            sendSuccess(p, "Your health: " .. p:getHealth() .. " / " .. p:getMaxHealth())
         end,
 
-        --- @param player LuaPlayer
-        status = function(player)
-            local health = player:getHealth()
-            local fireTicks = player:getFireTicks() or 0
-            player:sendTellraw('{"rawtext":[{"text":"§aHealth: ' .. health .. " / " .. player:getMaxHealth() .. '"}]}')
-            player:sendTellraw('{"rawtext":[{"text":"§aOn fire: ' .. (fireTicks > 0 and "yes (" .. fireTicks .. " ticks)" or "no") .. '"}]}')
+        status = function(p)
+            local fireTicks = p:getFireTicks() or 0
+            sendSuccess(p, "Health: " .. p:getHealth() .. " / " .. p:getMaxHealth())
+            sendSuccess(p, "On fire: " .. (fireTicks > 0 and "yes (" .. fireTicks .. " ticks)" or "no"))
         end,
 
-        --- @param player LuaPlayer
-        item = function(player)
-            local item = player:getItemInHand()
+        item = function(p)
+            local item = p:getItemInHand()
             if item and item.getType then
-                player:sendTellraw('{"rawtext":[{"text":"§aYou\'re holding: ' .. item:getType() .. '"}]}')
+                sendSuccess(p, "You're holding: " .. item:getType())
             else
-                player:sendTellraw('{"rawtext":[{"text":"§cYour hand is empty."}]}')
+                sendError(p, "Your hand is empty.")
             end
         end,
-        
-        --- @param player LuaPlayer
-        inv = function(player, args)
+
+        inv = function(p, args)
             local material = args[2]
             if not material then
-                player:sendTellraw('{"rawtext":[{"text":"§cUsage: :inv <item>"}]}')
+                sendError(p, "Usage: :inv <item>")
                 return
             end
             local count = 0
             for i = 0, 35 do
-                local item = player:getInventoryItem(i)
+                local item = p:getInventoryItem(i)
                 if item and item.getType then
                     if item:getType():lower() == material:lower() then
                         count = count + item:getAmount()
                     end
                 end
             end
-            player:sendTellraw('{"rawtext":[{"text":"you have ' .. count .. ' of ' .. material .. '"}]}')
+            sendSuccess(p, "You have " .. count .. " of " .. material)
         end,
 
-        --- @param player LuaPlayer
-        compass = function(player)
-            local dir = player:getLookDirection()
-            local angle = math.atan2(dir.z, dir.x) * (180 / math.pi)
-            if angle < 0 then angle = angle + 360 end
-            local facing = "unknown"
-            if angle >= 45 and angle < 135 then
-                facing = "south"
-            elseif angle >= 135 and angle < 225 then
-                facing = "west"
-            elseif angle >= 225 and angle < 315 then
-                facing = "north"
-            else
-                facing = "east"
+        compass = function(p)
+            local dir = p:getLookDirection()
+            if type(dir) == 'table' and type(dir.z) == 'number' and type(dir.x) == 'number' then
+                local angle = math.atan2(dir.z, dir.x) * (180 / math.pi)
+                if angle < 0 then angle = angle + 360 end
+                local facing = "unknown"
+                if angle >= 45 and angle < 135 then
+                    facing = "south"
+                elseif angle >= 135 and angle < 225 then
+                    facing = "west"
+                elseif angle >= 225 and angle < 315 then
+                    facing = "north"
+                else
+                    facing = "east"
+                end
+                sendSuccess(p, "You are facing " .. facing)
             end
-            player:sendTellraw('{"rawtext":[{"text":"you are facing ' .. facing .. '"}]}')
         end,
     }
 
@@ -360,12 +253,13 @@ chatCommandEvent = mc.bindToEvent("ServerChat", function(event)
 
     if abusiveCommands[command] then
         if not player:isOp() then
-            player:sendTellraw('{"rawtext":[{"text":"You do not have permission to use the \'' .. command .. '\' command."}]}')
+            sendError(player, "You do not have permission to use the '" .. command .. "' command.")
             return
         end
         return abusiveCommands[command](player, args)
     end
 
-    player:sendTellraw('{"rawtext":[{"text":"Unknown command: ' .. command .. '"}]}')
+    sendError(player, "Unknown command: " .. command)
 end)
+
 _G.chatCommandEvent = chatCommandEvent

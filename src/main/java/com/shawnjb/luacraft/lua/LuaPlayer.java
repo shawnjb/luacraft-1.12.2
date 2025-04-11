@@ -10,7 +10,10 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
+
+import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.TwoArgFunction;
 import org.luaj.vm2.lib.ZeroArgFunction;
@@ -71,21 +74,146 @@ public class LuaPlayer extends LuaEntity {
             }
         });
 
-        set("sendTellraw", new OneArgFunction() {
+        set("sendTellraw", new TwoArgFunction() {
             @Override
-            public LuaValue call(LuaValue arg) {
-                String json = arg.checkjstring();
+            public LuaValue call(LuaValue self, LuaValue arg) {
+                if (!(self instanceof LuaPlayer)) {
+                    System.err.println("[LuaCraft] sendTellraw: 'self' is not a LuaPlayer.");
+                    return LuaValue.NIL;
+                }
+
+                LuaPlayer luaPlayer = (LuaPlayer) self;
+                String input;
+
                 try {
-                    ITextComponent comp = ITextComponent.Serializer.fromJsonLenient(json);
-                    if (comp != null) {
-                        player.sendMessage(comp);
+                    input = arg.checkjstring();
+                } catch (Exception e) {
+                    luaPlayer.getHandle().sendMessage(
+                            new TextComponentString("§c[LuaCraft] sendTellraw expected a string."));
+                    return LuaValue.NIL;
+                }
+
+                try {
+                    String trimmed = input.trim();
+                    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+                        ITextComponent component = ITextComponent.Serializer.fromJsonLenient(input);
+                        if (component != null) {
+                            luaPlayer.getHandle().sendMessage(component);
+                        } else {
+                            luaPlayer.getHandle().sendMessage(
+                                    new TextComponentString("§c[LuaCraft] Tellraw parsing failed: null component"));
+                        }
                     } else {
-                        throw new IllegalArgumentException("Parsed component was null");
+                        luaPlayer.getHandle().sendMessage(new TextComponentString(input));
                     }
                 } catch (Exception e) {
-                    player.sendMessage(new TextComponentString(json));
+                    luaPlayer.getHandle().sendMessage(
+                            new TextComponentString("§c[LuaCraft] Tellraw error: " + e.getMessage()));
                 }
+
                 return LuaValue.NIL;
+            }
+        });
+
+        set("sendTellrawFromTable", new TwoArgFunction() {
+            @Override
+            public LuaValue call(LuaValue self, LuaValue arg) {
+                if (!(self instanceof LuaPlayer)) {
+                    System.err.println("[LuaCraft] sendTellrawFromTable: 'self' is not a LuaPlayer.");
+                    return LuaValue.NIL;
+                }
+
+                LuaPlayer luaPlayer = (LuaPlayer) self;
+
+                if (!arg.istable()) {
+                    luaPlayer.getHandle().sendMessage(
+                            new TextComponentString("§c[LuaCraft] Expected table for sendTellrawFromTable."));
+                    return LuaValue.NIL;
+                }
+
+                try {
+                    LuaTable array = (LuaTable) arg;
+                    StringBuilder jsonBuilder = new StringBuilder();
+                    jsonBuilder.append("[");
+
+                    LuaValue k = LuaValue.NIL;
+                    boolean first = true;
+                    while (true) {
+                        Varargs next = array.next(k);
+                        k = next.arg1();
+                        if (k.isnil())
+                            break;
+
+                        LuaValue value = next.arg(2);
+
+                        if (!first)
+                            jsonBuilder.append(",");
+
+                        if (value.isstring()) {
+                            jsonBuilder.append("\"").append(escape(value.tojstring())).append("\"");
+                        } else if (value.istable()) {
+                            jsonBuilder.append(buildJsonObject((LuaTable) value));
+                        }
+
+                        first = false;
+                    }
+
+                    jsonBuilder.append("]");
+
+                    ITextComponent component = ITextComponent.Serializer.fromJsonLenient(jsonBuilder.toString());
+                    if (component != null) {
+                        luaPlayer.getHandle().sendMessage(component);
+                    } else {
+                        luaPlayer.getHandle()
+                                .sendMessage(new TextComponentString("§c[LuaCraft] Tellraw JSON failed to parse."));
+                    }
+
+                } catch (Exception e) {
+                    luaPlayer.getHandle().sendMessage(
+                            new TextComponentString("§c[LuaCraft] Tellraw table error: " + e.getMessage()));
+                }
+
+                return LuaValue.NIL;
+            }
+
+            private String buildJsonObject(LuaTable table) {
+                StringBuilder obj = new StringBuilder();
+                obj.append("{");
+
+                LuaValue k = LuaValue.NIL;
+                boolean first = true;
+                while (true) {
+                    Varargs next = table.next(k);
+                    k = next.arg1();
+                    if (k.isnil())
+                        break;
+
+                    LuaValue v = table.get(k);
+                    if (!first)
+                        obj.append(",");
+                    obj.append("\"").append(escape(k.tojstring())).append("\":");
+
+                    if (v.isstring()) {
+                        obj.append("\"").append(escape(v.tojstring())).append("\"");
+                    } else if (v.isboolean()) {
+                        obj.append(v.toboolean());
+                    } else if (v.isnumber()) {
+                        obj.append(v.tojstring());
+                    } else if (v.istable()) {
+                        obj.append(buildJsonObject((LuaTable) v)); // nested object
+                    } else {
+                        obj.append("\"").append(escape(v.tojstring())).append("\"");
+                    }
+
+                    first = false;
+                }
+
+                obj.append("}");
+                return obj.toString();
+            }
+
+            private String escape(String raw) {
+                return raw.replace("\\", "\\\\").replace("\"", "\\\"");
             }
         });
 
@@ -193,14 +321,23 @@ public class LuaPlayer extends LuaEntity {
 
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
                 "sendTellraw",
-                "Sends a raw JSON-formatted chat message to the player. " +
-                        "Accepts JSON strings such as " +
-                        "'{\"rawtext\":[{\"text\":\"§aExample \"},{\"text\":\"§e§lText\"}]}' " +
-                        "or " +
-                        "'{\"rawtext\":[{\"text\":\"§aExample §e§lText\"}]}' " +
-                        "and falls back to plain text if the JSON is invalid.",
+                "Sends a raw JSON-formatted chat message to the player. Accepts either a tellraw array (e.g. '[{\"text\":\"hello\"}]') "
+                        +
+                        "or a fallback string with formatting codes like '§aHello world'. Parses the message and shows it with formatting.",
                 Arrays.asList(new LuaDocRegistry.Param("json", "string",
-                        "A raw JSON-formatted string representing the chat message")),
+                        "A JSON string for the tellraw message, or a color-formatted plain string")),
+                Arrays.asList(),
+                true));
+
+        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
+                "sendTellrawFromTable",
+                "Sends a formatted chat message using a Lua table representing a tellraw-style JSON array. " +
+                        "Supports Minecraft 1.12.2 structure including hoverEvent, clickEvent, and formatting like color and bold. "
+                        +
+                        "Each table entry must be either a plain string (sent directly) or a table with keys like 'text', 'color', 'bold', etc.",
+                Arrays.asList(
+                        new LuaDocRegistry.Param("parts", "table",
+                                "A table of components, each being a string or a table with text formatting properties")),
                 Arrays.asList(),
                 true));
 

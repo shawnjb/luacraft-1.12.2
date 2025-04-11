@@ -101,12 +101,20 @@ public class LuaVector3 extends LuaTable {
     }
 
     public static LuaVector3 fromLuaTable(LuaTable table) {
-        double x = table.get("x").checkdouble();
-        double y = table.get("y").checkdouble();
-        double z = table.get("z").checkdouble();
-        return new LuaVector3(x, y, z);
+        if (!table.istable())
+            throw new IllegalArgumentException("Expected a Vector3 table");
+    
+        LuaValue lx = table.get("x");
+        LuaValue ly = table.get("y");
+        LuaValue lz = table.get("z");
+    
+        if (lx.isnil() || ly.isnil() || lz.isnil()) {
+            throw new IllegalArgumentException("Vector3 table must contain numeric fields 'x', 'y', and 'z'");
+        }
+    
+        return new LuaVector3(lx.checkdouble(), ly.checkdouble(), lz.checkdouble());
     }
-
+    
     public static void registerDocs() {
         LuaDocRegistry.addGlobalClass("Vector3", "A 3D vector with x, y, z and math methods.");
 

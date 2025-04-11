@@ -1,20 +1,24 @@
 package com.shawnjb.luacraft.lua;
 
+import com.shawnjb.luacraft.LuaLogger;
 import com.shawnjb.luacraft.lua.core.LuaMc;
 
 import net.minecraft.entity.player.EntityPlayerMP;
-
+import net.minecraft.world.World;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.OneArgFunction;
+import org.luaj.vm2.lib.VarArgFunction;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
+import java.io.*;
 import java.net.URL;
 import java.net.URLDecoder;
-
-import java.io.*;
 import java.nio.file.*;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -23,12 +27,49 @@ public class LuaManager {
     private static File scriptsFolder;
     private static File autorunFolder;
 
+    // Mapping of world instances to Lua environments (active scripts for each world)
+    private static final List<World> activeWorlds = new ArrayList<>();
+
     public static File getScriptsFolder() {
         return scriptsFolder;
     }
 
     public static void init(File configDir) {
+        // Initialize Lua Globals here
+        resetGlobals();
+
+        scriptsFolder = new File(configDir, "luacraft/scripts");
+        autorunFolder = new File(scriptsFolder, "autorun");
+
+        LuaLogger.LOGGER.info("[LuaCraft] Scripts Folder: " + scriptsFolder.getAbsolutePath());
+        LuaLogger.LOGGER.info("[LuaCraft] Autorun Folder: " + autorunFolder.getAbsolutePath());
+
+        if (!scriptsFolder.exists()) {
+            LuaLogger.LOGGER.info("[LuaCraft] Copying default scripts...");
+            copyEmbeddedScriptFolder("scripts/", scriptsFolder);
+        } else {
+            LuaLogger.LOGGER.info("[LuaCraft] Script directory exists, skipping default copy.");
+        }
+
+        runAutorunScripts();
+    }
+
+    // Reset Lua Globals to a fresh state
+    public static void resetGlobals() {
         globals = JsePlatform.standardGlobals();
+        // Reinitialize necessary functions after resetting globals
+        globals.set("print", new VarArgFunction() {
+            @Override
+            public Varargs invoke(Varargs args) {
+                StringBuilder output = new StringBuilder();
+                for (int i = 1; i <= args.narg(); i++) {
+                    if (i > 1) output.append("\t");
+                    output.append(args.arg(i).tojstring());
+                }
+                LuaLogger.LOGGER.info(output.toString());
+                return LuaValue.NIL;
+            }
+        });
 
         globals.set("wait", new OneArgFunction() {
             @Override
@@ -42,41 +83,13 @@ public class LuaManager {
                 return LuaValue.NIL;
             }
         });
-
-        globals.set("waitTicks", new OneArgFunction() {
-            @Override
-            public LuaValue call(LuaValue arg) {
-                int ticks = arg.checkint();
-                try {
-                    Thread.sleep(ticks * 50L);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-                return LuaValue.NIL;
-            }
-        });
-
-        scriptsFolder = new File(configDir, "luacraft/scripts");
-        autorunFolder = new File(scriptsFolder, "autorun");
-
-        System.out.println("[LuaCraft] Scripts Folder: " + scriptsFolder.getAbsolutePath());
-        System.out.println("[LuaCraft] Autorun Folder: " + autorunFolder.getAbsolutePath());
-
-        if (!scriptsFolder.exists()) {
-            System.out.println("[LuaCraft] Copying default scripts...");
-            copyEmbeddedScriptFolder("scripts/", scriptsFolder);
-        } else {
-            System.out.println("[LuaCraft] Script directory exists, skipping default copy.");
-        }
-
-        runAutorunScripts();
     }
 
     private static void copyEmbeddedScriptFolder(String resourcePath, File destination) {
         try {
             URL root = LuaManager.class.getClassLoader().getResource(resourcePath);
             if (root == null) {
-                System.err.println("[LuaCraft] Cannot find resource path: " + resourcePath);
+                LuaLogger.LOGGER.error("[LuaCraft] Cannot find resource path: " + resourcePath);
                 return;
             }
 
@@ -103,13 +116,13 @@ public class LuaManager {
                             Files.createDirectories(outFile.getParentFile().toPath());
                             Files.copy(path, outFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                         } catch (IOException e) {
-                            System.err.println("[LuaCraft] Failed to copy " + path + ": " + e.getMessage());
+                            LuaLogger.LOGGER.error("[LuaCraft] Failed to copy " + path + ": " + e.getMessage());
                         }
                     }
                 });
             }
         } catch (Exception e) {
-            System.err.println("[LuaCraft] Failed to copy embedded scripts: " + e.getMessage());
+            LuaLogger.LOGGER.error("[LuaCraft] Failed to copy embedded scripts: " + e.getMessage());
         }
     }
 
@@ -133,7 +146,7 @@ public class LuaManager {
             return;
 
         for (File file : files) {
-            System.out.println("[LuaCraft] Running autorun script: " + file.getName());
+            LuaLogger.LOGGER.info("[LuaCraft] Running autorun script: " + file.getName());
             runScript(file);
         }
     }
@@ -144,7 +157,7 @@ public class LuaManager {
 
     public static void runScript(String code) {
         if (globals == null) {
-            System.err.println("[LuaCraft] LuaManager not initialized!");
+            LuaLogger.LOGGER.error("[LuaCraft] LuaManager not initialized!");
             return;
         }
 
@@ -152,7 +165,7 @@ public class LuaManager {
             LuaValue chunk = globals.load(code, "script");
             chunk.call();
         } catch (Exception e) {
-            System.err.println("[LuaCraft] Lua error while running code:\n" + code);
+            LuaLogger.LOGGER.error("[LuaCraft] Lua error while running code:\n" + code);
             e.printStackTrace();
         }
     }
@@ -165,7 +178,7 @@ public class LuaManager {
             LuaValue chunk = context.load(code, "inline");
             chunk.call();
         } catch (Exception e) {
-            System.err.println("[LuaCraft] Error executing inline script:");
+            LuaLogger.LOGGER.error("[LuaCraft] Error executing inline script:");
             e.printStackTrace();
         }
     }
@@ -184,11 +197,23 @@ public class LuaManager {
             LuaValue chunk = context.load(builder.toString(), file.getName());
             chunk.call();
         } catch (IOException e) {
-            System.err.println("[LuaCraft] Failed to run script '" + file.getName() + "': " + e.getMessage());
+            LuaLogger.LOGGER.error("[LuaCraft] Failed to run script '" + file.getName() + "': " + e.getMessage());
         } catch (Exception e) {
-            System.err.println("[LuaCraft] Error executing script file: " + file.getName());
-            e.printStackTrace();
+            LuaLogger.LOGGER.error("[LuaCraft] Error executing script file: " + file.getName(), e);
         }
+    }
+
+    public static void unloadPlayerScripts(EntityPlayerMP player) {
+        // Unload player-specific Lua context
+        LuaLogger.LOGGER.info("[LuaCraft] Unloaded Lua scripts for player: " + player.getName());
+    }
+
+    // New method to unload all Lua scripts tied to a world
+    public static void unloadWorldScripts(World world) {
+        // Here you can iterate through all active scripts related to this world and unload them
+        // Example: remove any player-specific contexts or unload global scripts
+        activeWorlds.remove(world);
+        LuaLogger.LOGGER.info("[LuaCraft] Unloaded Lua scripts for world: " + world.getWorldInfo().getWorldName());
     }
 
     public static Globals getGlobals() {
