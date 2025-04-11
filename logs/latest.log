@@ -1,5 +1,5 @@
-[17:38:15] [main/INFO] [LuaCraft]: [LuaDocGenerator] Running LuaDocBootstrap...
-[17:38:15] [main/INFO] [LuaCraft]: Inherited 16 methods from LuaEntity to LuaPlayer
-[17:38:15] [main/INFO] [LuaCraft]: [LuaDocGenerator] Classes registered: 9
-[17:38:15] [main/INFO] [LuaCraft]: [LuaDocGenerator] Functions registered: 106
-[17:38:15] [main/INFO] [LuaCraft]: [LuaDocGenerator] docs.lua generated at: /home/shawnjb/luacraft/src/main/resources/docs/docs.lua
+[18:50:47] [main/INFO] [LuaCraft]: [LuaDocGenerator] Running LuaDocBootstrap...
+[18:50:47] [main/INFO] [LuaCraft]: Inherited 16 methods from LuaEntity to LuaPlayer
+[18:50:47] [main/INFO] [LuaCraft]: [LuaDocGenerator] Classes registered: 9
+[18:50:47] [main/INFO] [LuaCraft]: [LuaDocGenerator] Functions registered: 106
+[18:50:47] [main/INFO] [LuaCraft]: [LuaDocGenerator] docs.lua generated at: /home/shawnjb/luacraft/src/main/resources/docs/docs.lua

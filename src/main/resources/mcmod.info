@@ -1,7 +1,7 @@
 [
   {
     "modid": "luacraft",
-    "name": "LuaCraft Mod",
+    "name": "LuaCraft",
     "description": "A Lua scripting mod for Minecraft Forge. Enables scripting of in-game behavior using Lua.",
     "version": "${version}",
     "mcversion": "${mcversion}",
@@ -12,10 +12,7 @@
     ],
     "credits": "Special thanks to the Forge and FML teams, and the open source community.",
     "logoFile": "assets/luacraft/logo.png",
-    "screenshots": [
-      "assets/luacraft/screenshot1.png",
-      "assets/luacraft/screenshot2.png"
-    ],
+    "screenshots": [],
     "dependencies": []
   }
 ]

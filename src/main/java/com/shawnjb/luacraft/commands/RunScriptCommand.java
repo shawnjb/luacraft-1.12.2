@@ -1,5 +1,10 @@
 package com.shawnjb.luacraft.commands;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+
 import com.shawnjb.luacraft.lua.LuaManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
@@ -21,18 +26,35 @@ public class RunScriptCommand extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) {
-        if (args.length == 0) {
-            sender.sendMessage(new TextComponentString("Usage: /runscript <code>"));
+        if (args.length != 1) {
+            sender.sendMessage(new TextComponentString("Usage: /runscript <scriptName>"));
             return;
         }
 
-        String code = String.join(" ", args);
-        if (sender instanceof EntityPlayerMP) {
-            LuaManager.runScript(code, (EntityPlayerMP) sender);
-        } else {
-            LuaManager.runScript(code);
-        }
+        String scriptName = args[0];
+        File file = new File(LuaManager.getScriptsFolder(), scriptName);
 
-        sender.sendMessage(new TextComponentString("[LuaCraft] Lua code executed."));
+        if (file.exists() && file.isFile()) {
+            StringBuilder scriptContent = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    scriptContent.append(line).append("\n");
+                }
+            } catch (IOException e) {
+                sender.sendMessage(new TextComponentString("[LuaCraft] Error reading script file: " + e.getMessage()));
+                return;
+            }
+
+            if (sender instanceof EntityPlayerMP) {
+                LuaManager.runScriptForPlayer(scriptContent.toString(), (EntityPlayerMP) sender);
+            } else {
+                LuaManager.runScript(scriptContent.toString());
+            }
+
+            sender.sendMessage(new TextComponentString("[LuaCraft] Loaded and executed script: " + scriptName));
+        } else {
+            sender.sendMessage(new TextComponentString("[LuaCraft] Script not found: " + scriptName));
+        }
     }
 }

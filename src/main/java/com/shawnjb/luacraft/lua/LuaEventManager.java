@@ -23,38 +23,49 @@ public class LuaEventManager {
             if (funcs != null) {
                 for (LuaFunction func : funcs) {
                     try {
-                        LuaValue wrappedEvent = wrapEvent(event);
-                        func.call(wrappedEvent);
+                        LuaValue[] args = getArgsForEvent(event);
+                        func.invoke(args);
                     } catch (Exception e) {
                         System.err.println("[LuaCraft] Lua listener error: " + e.getMessage());
                     }
                 }
             }
         }
-
-        private LuaValue wrapEvent(net.minecraftforge.fml.common.eventhandler.Event event) {
-            if (event instanceof ServerChatEvent) {
-                ServerChatEvent chatEvent = (ServerChatEvent) event;
-                LuaTable t = new LuaTable();
-                t.set("player", new LuaPlayer(chatEvent.getPlayer()));
-                String msg = chatEvent.getMessage();
-                if (msg == null) {
-                    msg = "";
-                }
-                t.set("message", LuaValue.valueOf(msg));
-                t.set("username", LuaValue.valueOf(chatEvent.getUsername()));
-                return t;
-            } else if (event instanceof EntityEvent) {
-                EntityEvent entityEvent = (EntityEvent) event;
-                return new LuaEntity(entityEvent.getEntity());
-            } else {
-                LuaTable luaEvent = new LuaTable();
-                luaEvent.set("eventName", LuaValue.valueOf(event.getClass().getSimpleName()));
-                luaEvent.set("eventObject", LuaValue.valueOf(event.toString()));
-                return luaEvent;
-            }
-        }
     };
+
+    private static LuaValue[] getArgsForEvent(net.minecraftforge.fml.common.eventhandler.Event event) {
+        if (event instanceof ServerChatEvent) {
+            ServerChatEvent chatEvent = (ServerChatEvent) event;
+            return new LuaValue[] {
+                    new LuaPlayer(chatEvent.getPlayer()),
+                    LuaValue.valueOf(chatEvent.getMessage())
+            };
+        }
+
+        return new LuaValue[] { wrapEvent(event) };
+    }
+
+    private static LuaValue wrapEvent(net.minecraftforge.fml.common.eventhandler.Event event) {
+        if (event instanceof ServerChatEvent) {
+            ServerChatEvent chatEvent = (ServerChatEvent) event;
+            LuaTable t = new LuaTable();
+            t.set("player", new LuaPlayer(chatEvent.getPlayer()));
+            String msg = chatEvent.getMessage();
+            if (msg == null)
+                msg = "";
+            t.set("message", LuaValue.valueOf(msg));
+            t.set("username", LuaValue.valueOf(chatEvent.getUsername()));
+            return t;
+        } else if (event instanceof EntityEvent) {
+            EntityEvent entityEvent = (EntityEvent) event;
+            return new LuaEntity(entityEvent.getEntity());
+        } else {
+            LuaTable luaEvent = new LuaTable();
+            luaEvent.set("eventName", LuaValue.valueOf(event.getClass().getSimpleName()));
+            luaEvent.set("eventObject", LuaValue.valueOf(event.toString()));
+            return luaEvent;
+        }
+    }
 
     /**
      * Registers a Lua callback to a named event.

@@ -30,11 +30,13 @@ public class LoadScriptCommand extends CommandBase {
 
         String scriptName = args[0];
         File file = new File(LuaManager.getScriptsFolder(), scriptName);
+        
         if (file.exists() && file.isFile()) {
             if (sender instanceof EntityPlayerMP) {
-                LuaManager.runScript(file, (EntityPlayerMP) sender);
+                EntityPlayerMP player = (EntityPlayerMP) sender;
+                LuaManager.loadScriptForPlayer(file, player);
             } else {
-                LuaManager.runScript(file);
+                LuaManager.loadScript(file);
             }
             sender.sendMessage(new TextComponentString("[LuaCraft] Loaded script: " + scriptName));
         } else {

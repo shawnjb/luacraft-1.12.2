@@ -37,6 +37,7 @@ public class LuaCraft {
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         LuaDocBootstrap.registerAll();
+        new WorldUnloadHandler();
     }
 
     @Mod.EventHandler
@@ -45,4 +46,9 @@ public class LuaCraft {
         event.registerServerCommand(new LoadScriptCommand());
         event.registerServerCommand(new ListScriptsCommand());
     }
+
+    @Mod.EventHandler
+    public void onServerStopping(net.minecraftforge.fml.common.event.FMLServerStoppingEvent event) {
+        LuaManager.unloadAllScripts();
+    }    
 }
