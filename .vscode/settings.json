@@ -3,5 +3,7 @@
     "java.compile.nullAnalysis.mode": "disabled",
     "files.associations": {
         "mcmod.info": "json"
-    }
+    },
+    "java.import.gradle.wrapper.enabled": true,
+    "java.import.gradle.user.home": "/home/shawnjb/.sdkman/candidates/gradle/current/bin/gradle",
 }

@@ -7,8 +7,8 @@ import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.ZeroArgFunction;
 
+import com.shawnjb.luacraft.LuaLogger;
 import com.shawnjb.luacraft.docs.LuaDocRegistry;
-import com.shawnjb.luacraft.lua.api.LuaVector3;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.effect.EntityLightningBolt;
@@ -35,7 +35,7 @@ public class LuaWorld extends LuaTable {
             @Override
             public LuaValue call() {
                 BlockPos spawn = world.getSpawnPoint();
-                return new LuaVector3(spawn.getX(), spawn.getY(), spawn.getZ());
+                return LuaUtils.makeXYZ(spawn.getX(), spawn.getY(), spawn.getZ());
             }
         });
 
@@ -124,42 +124,24 @@ public class LuaWorld extends LuaTable {
         set("createExplosion", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
-                try {
-                    LuaVector3 vec;
-        
-                    if (arg instanceof LuaVector3) {
-                        vec = (LuaVector3) arg;
-        
-                    } else if (arg.istable()) {
-                        LuaTable table = arg.checktable();
-                        LuaValue x = table.get("x");
-                        LuaValue y = table.get("y");
-                        LuaValue z = table.get("z");
-        
-                        if (!x.isnumber() || !y.isnumber() || !z.isnumber()) {
-                            return LuaValue.error("Vector3 table must contain numeric fields 'x', 'y', and 'z'");
-                        }
-        
-                        vec = new LuaVector3(x.todouble(), y.todouble(), z.todouble());
-        
-                    } else {
-                        return LuaValue.error("Expected Vector3 table or LuaVector3");
-                    }
-        
-                    world.spawnEntity(new EntityTNTPrimed(world, vec.x, vec.y, vec.z, null));
-                } catch (Exception e) {
-                    return LuaValue.error("Invalid Vector3: " + e.getMessage());
+                double[] position = LuaUtils.unpackXYZ(arg);
+
+                if (position != null) {
+                    LuaLogger.LOGGER.info("Explosion Coordinates: x=" + position[0] + ", y=" + position[1] + ", z=" + position[2]);
+                    world.spawnEntity(new EntityTNTPrimed(world, position[0], position[1], position[2], null));
+                } else {
+                    LuaLogger.LOGGER.error("Invalid position table.");
                 }
-        
+
                 return LuaValue.NIL;
             }
-        });        
+        });
 
         set("getBlockAt", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
-                LuaVector3 vec = LuaVector3.fromLuaTable(arg.checktable());
-                BlockPos pos = new BlockPos(vec.x, vec.y, vec.z);
+                double[] coords = LuaUtils.unpackXYZ(arg);
+                BlockPos pos = new BlockPos(coords[0], coords[1], coords[2]);
                 return new LuaBlock(world, pos);
             }
         });
@@ -175,7 +157,7 @@ public class LuaWorld extends LuaTable {
                     return LuaValue.error("Expected table with { pos = Vector3, id = 'minecraft:block_id' }");
                 }
 
-                LuaVector3 vec = LuaVector3.fromLuaTable(posVal.checktable());
+                double[] coords = LuaUtils.unpackXYZ(posVal);
                 String id = idVal.tojstring();
 
                 Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
@@ -183,8 +165,8 @@ public class LuaWorld extends LuaTable {
                     return LuaValue.error("Unknown block ID: " + id);
                 }
 
-                BlockPos pos = new BlockPos(vec.x, vec.y, vec.z);
-                world.setBlockState(pos, block.getDefaultState(), 3);
+                BlockPos blockPos = new BlockPos(coords[0], coords[1], coords[2]);
+                world.setBlockState(blockPos, block.getDefaultState(), 3);
                 return LuaValue.TRUE;
             }
         });
@@ -223,9 +205,8 @@ public class LuaWorld extends LuaTable {
         set("strikeLightning", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
-                LuaVector3 pos = LuaVector3.fromLuaTable(arg.checktable());
-                EntityLightningBolt bolt = new EntityLightningBolt(world, pos.x, pos.y, pos.z, false);
-                world.spawnEntity(bolt);
+                double[] coords = LuaUtils.unpackXYZ(arg);
+                world.spawnEntity(new EntityLightningBolt(world, coords[0], coords[1], coords[2], false));
                 return LuaValue.NIL;
             }
         });
@@ -336,37 +317,41 @@ public class LuaWorld extends LuaTable {
 
         LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
                 "createExplosion",
-                "Creates an explosion at the given position.",
-                Arrays.asList(new LuaDocRegistry.Param("pos", "Vector3", "The position to explode at")),
+                "Creates an explosion at the given position. Accepts a table with x, y, and z fields.",
+                Arrays.asList(
+                        new LuaDocRegistry.Param("pos", "table", "A table with numeric fields 'x', 'y', and 'z'")),
                 Arrays.asList(),
                 true));
 
         LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
                 "getBlockAt",
                 "Returns a LuaBlock at the given position.",
-                Arrays.asList(new LuaDocRegistry.Param("pos", "Vector3", "The position to query")),
+                Arrays.asList(
+                        new LuaDocRegistry.Param("pos", "table", "A table with numeric fields 'x', 'y', and 'z'")),
                 Arrays.asList(new LuaDocRegistry.Return("LuaBlock", "The block at that position")),
                 true));
 
         LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
                 "setBlockAt",
                 "Sets a block at a position using a block ID string.",
-                Arrays.asList(new LuaDocRegistry.Param("info", "table", "Table with 'pos' and 'id' fields")),
+                Arrays.asList(new LuaDocRegistry.Param("info", "table",
+                        "Table with 'pos' (table with x/y/z) and 'id' (string)")),
                 Arrays.asList(new LuaDocRegistry.Return("boolean", "True if successful")),
                 true));
 
         LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
                 "setBlock",
                 "Sets the block at the given LuaBlock position.",
-                Arrays.asList(new LuaDocRegistry.Param("info", "table", "Table with 'block' (LuaBlock) and 'id'")),
+                Arrays.asList(
+                        new LuaDocRegistry.Param("info", "table", "Table with 'block' (LuaBlock) and 'id' (string)")),
                 Arrays.asList(new LuaDocRegistry.Return("boolean", "True if successful")),
                 true));
 
         LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
                 "getSpawnPoint",
-                "Gets the world's default spawn location.",
+                "Gets the world's default spawn location as a table with x, y, z.",
                 Arrays.asList(),
-                Arrays.asList(new LuaDocRegistry.Return("Vector3", "The spawn point as a vector")),
+                Arrays.asList(new LuaDocRegistry.Return("table", "The spawn point as a table with x, y, z")),
                 true));
 
         LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
@@ -378,9 +363,9 @@ public class LuaWorld extends LuaTable {
 
         LuaDocRegistry.addFunction("LuaWorld", new LuaDocRegistry.FunctionDoc(
                 "strikeLightning",
-                "Strikes lightning at the given position by summoning a lightning bolt entity. " +
-                        "Expects a Vector3 representing the position at which to strike lightning.",
-                Arrays.asList(new LuaDocRegistry.Param("pos", "Vector3", "The position at which to strike lightning")),
+                "Strikes lightning at the given position. Accepts a table with x, y, and z fields.",
+                Arrays.asList(
+                        new LuaDocRegistry.Param("pos", "table", "A table with numeric fields 'x', 'y', and 'z'")),
                 Arrays.asList(),
                 true));
 

@@ -17,6 +17,10 @@ public class LuaManager {
     private static File scriptsFolder;
     private static final List<LuaModule> loadedScripts = new ArrayList<>();
 
+    public static int getLoadedScriptCount() {
+        return loadedScripts.size();
+    }    
+
     public static void init(File configDir) {
         resetGlobals();
         scriptsFolder = new File(configDir, "scripts");

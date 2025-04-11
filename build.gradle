@@ -30,7 +30,7 @@ minecraft {
 }
 
 dependencies {
-    compile 'org.luaj:luaj-jse:3.0.1'
+    compile files('./jars/luaj-jse-3.0.2.jar')
 }
 
 processResources {

@@ -14,12 +14,6 @@ local LuaPlayer = {}
 ---@class LuaWorld
 local LuaWorld = {}
 
----@class Vector3
----@field x number @The X coordinate
----@field y number @The Y coordinate
----@field z number @The Z coordinate
-Vector3 = {}
-
 ---@class LuaMaterial
 local LuaMaterial = {}
 
@@ -31,6 +25,21 @@ local LuaBlock = {}
 
 ---@class LuaEvent
 local LuaEvent = {}
+
+---Returns the number of Lua scripts currently loaded.
+---@return number @The script count
+function mc.getLoadedScriptCount() end
+
+---The player who triggered the command or event (if available).
+---@return LuaPlayer @The sender player object or nil
+function mc.sender() end
+
+---Creates a table with x, y, and z fields.
+---@param x number
+---@param y number
+---@param z number
+---@return table @A table with x, y, and z values
+function mc.vector(x, y, z) end
 
 ---Broadcasts a message to all players.
 ---@param message string
@@ -75,6 +84,14 @@ function mc.summonEntity(entityId, pos) end
 ---@return LuaItemStack @The created item stack or nil if invalid
 function mc.createItemStack(itemId, count) end
 
+---Gets the current motion vector of the entity.
+---@return table @A table with numeric fields 'x', 'y', and 'z'
+function LuaEntity:getVelocity() end
+
+---Sets the entity's motion vector and marks it as changed for syncing.
+---@param velocity table
+function LuaEntity:setVelocity(velocity) end
+
 ---Returns the entity's internal ID.
 ---@return number @The entity ID
 function LuaEntity:getId() end
@@ -90,8 +107,8 @@ function LuaEntity:isPlayer() end
 ---Instantly kills the entity.
 function LuaEntity:kill() end
 
----Sets the position of the entity.
----@param pos Vector3
+---Teleports the entity to a specific position. Accepts a table with x, y, and z fields.
+---@param pos table
 function LuaEntity:setPosition(pos) end
 
 ---Sets the entity on fire for a specific number of ticks.
@@ -101,8 +118,8 @@ function LuaEntity:setFireTicks(ticks) end
 ---Extinguishes fire on the entity.
 function LuaEntity:clearFire() end
 
----Returns the current position of the entity. For players, returns a Vector3; for other entities, returns a table with x, y, and z fields.
----@return Vector3|table @The entity's position
+---Returns the current position of the entity. May include decimal precision for players, but block-aligned for mobs and other entities.
+---@return table @A table with numeric fields 'x', 'y', and 'z'
 function LuaEntity:getPosition() end
 
 ---Gets the current health of the entity. Returns nil if the entity does not have a health attribute.
@@ -129,8 +146,8 @@ function LuaEntity:damage(amount) end
 ---@return LuaWorld @The world object where the entity is located
 function LuaEntity:getWorld() end
 
----Returns a vector representing the direction the entity is looking. If the entity is not a living entity, nil is returned.
----@return Vector3|nil @A vector representing the look direction, or nil if not available
+---Returns the direction the entity is currently looking as a normalized vector.
+---@return table @A normalized table with 'x', 'y', and 'z' fields, or nil if not applicable
 function LuaEntity:getLookDirection() end
 
 ---Returns the current number of ticks the entity will remain on fire. (Accessed via reflection)
@@ -192,9 +209,17 @@ function LuaPlayer:getInventoryItem(index) end
 ---@return LuaBlock? @The block being looked at or nil if none
 function LuaPlayer:getTargetBlock(distance) end
 
----Returns the eye-level position of the player, used for accurate ray tracing or effects.
----@return Vector3 @The position of the player’s eyes
+---Gets the position of the player's eyes. Useful for raycasting or line-of-sight calculations.
+---@return table @A table with numeric fields 'x', 'y', and 'z'
 function LuaPlayer:getPositionEyes() end
+
+---Gets the current motion vector of the entity. (Inherited from LuaEntity)
+---@return table @A table with numeric fields 'x', 'y', and 'z'
+function LuaPlayer:getVelocity() end
+
+---Sets the entity's motion vector and marks it as changed for syncing. (Inherited from LuaEntity)
+---@param velocity table
+function LuaPlayer:setVelocity(velocity) end
 
 ---Returns the entity's internal ID. (Inherited from LuaEntity)
 ---@return number @The entity ID
@@ -211,8 +236,8 @@ function LuaPlayer:isPlayer() end
 ---Instantly kills the entity. (Inherited from LuaEntity)
 function LuaPlayer:kill() end
 
----Sets the position of the entity. (Inherited from LuaEntity)
----@param pos Vector3
+---Teleports the entity to a specific position. Accepts a table with x, y, and z fields. (Inherited from LuaEntity)
+---@param pos table
 function LuaPlayer:setPosition(pos) end
 
 ---Sets the entity on fire for a specific number of ticks. (Inherited from LuaEntity)
@@ -222,8 +247,8 @@ function LuaPlayer:setFireTicks(ticks) end
 ---Extinguishes fire on the entity. (Inherited from LuaEntity)
 function LuaPlayer:clearFire() end
 
----Returns the current position of the entity. For players, returns a Vector3; for other entities, returns a table with x, y, and z fields. (Inherited from LuaEntity)
----@return Vector3|table @The entity's position
+---Returns the current position of the entity. May include decimal precision for players, but block-aligned for mobs and other entities. (Inherited from LuaEntity)
+---@return table @A table with numeric fields 'x', 'y', and 'z'
 function LuaPlayer:getPosition() end
 
 ---Gets the current health of the entity. Returns nil if the entity does not have a health attribute. (Inherited from LuaEntity)
@@ -250,8 +275,8 @@ function LuaPlayer:damage(amount) end
 ---@return LuaWorld @The world object where the entity is located
 function LuaPlayer:getWorld() end
 
----Returns a vector representing the direction the entity is looking. If the entity is not a living entity, nil is returned. (Inherited from LuaEntity)
----@return Vector3|nil @A vector representing the look direction, or nil if not available
+---Returns the direction the entity is currently looking as a normalized vector. (Inherited from LuaEntity)
+---@return table @A normalized table with 'x', 'y', and 'z' fields, or nil if not applicable
 function LuaPlayer:getLookDirection() end
 
 ---Returns the current number of ticks the entity will remain on fire. (Accessed via reflection) (Inherited from LuaEntity)
@@ -294,12 +319,12 @@ function LuaWorld:isRaining() end
 ---@param raining boolean
 function LuaWorld:setRaining(raining) end
 
----Creates an explosion at the given position.
----@param pos Vector3
+---Creates an explosion at the given position. Accepts a table with x, y, and z fields.
+---@param pos table
 function LuaWorld:createExplosion(pos) end
 
 ---Returns a LuaBlock at the given position.
----@param pos Vector3
+---@param pos table
 ---@return LuaBlock @The block at that position
 function LuaWorld:getBlockAt(pos) end
 
@@ -313,60 +338,21 @@ function LuaWorld:setBlockAt(info) end
 ---@return boolean @True if successful
 function LuaWorld:setBlock(info) end
 
----Gets the world's default spawn location.
----@return Vector3 @The spawn point as a vector
+---Gets the world's default spawn location as a table with x, y, z.
+---@return table @The spawn point as a table with x, y, z
 function LuaWorld:getSpawnPoint() end
 
 ---Returns a list of all player entities in the world wrapped as LuaPlayer objects.
 ---@return LuaPlayer[] @A list of all players in the world
 function LuaWorld:getPlayers() end
 
----Strikes lightning at the given position by summoning a lightning bolt entity. Expects a Vector3 representing the position at which to strike lightning.
----@param pos Vector3
+---Strikes lightning at the given position. Accepts a table with x, y, and z fields.
+---@param pos table
 function LuaWorld:strikeLightning(pos) end
 
 ---Kills all Ender Dragons in the world by setting their health to 0. Works in all worlds; if none are found, returns false.
 ---@return boolean @True if any Ender Dragons were defeated, false otherwise
 function LuaWorld:defeatEnderDragon() end
-
----Creates a new 3D vector.
----@param x number
----@param y number
----@param z number
----@return Vector3 @The new vector instance
-function Vector3.new(x, y, z) end
-
----Returns the sum of this vector and another vector.
----@param other Vector3
----@return Vector3 @The result of the addition
-function Vector3:add(other) end
-
----Returns the difference between this vector and another vector.
----@param other Vector3
----@return Vector3 @The result of the subtraction
-function Vector3:sub(other) end
-
----Scales this vector by a factor.
----@param factor number
----@return Vector3 @The scaled vector
-function Vector3:scale(factor) end
-
----Returns the length (magnitude) of the vector.
----@return number @The length of the vector
-function Vector3:length() end
-
----Returns a unit vector (normalized version).
----@return Vector3 @The normalized vector
-function Vector3:normalize() end
-
----Returns the Euclidean distance to another vector.
----@param other Vector3
----@return number @The distance between the vectors
-function Vector3:distanceTo(other) end
-
----Returns an integer table for block position rounding down x/y/z.
----@return table @A table with integer x, y, z
-function Vector3:toBlockPos() end
 
 ---Returns the material name (fallback via toString).
 ---@return string @Material name
@@ -459,8 +445,21 @@ function LuaItemStack:getMaterial() end
 ---@return string @The registry ID of the item
 function LuaItemStack:getType() end
 
----Returns the position of the block as a Vector3.
----@return Vector3 @Block position
+---Returns the legacy numeric ID of the block.
+---@return number @The legacy block ID (e.g., 1 for stone)
+function LuaBlock:getId() end
+
+---Returns the block relative to this one by offset. Accepts a table with x, y, and z fields.
+---@param offset table
+---@return LuaBlock @The block at the offset position
+function LuaBlock:getRelative(offset) end
+
+---Returns the block's metadata value (damage/data). If the block has no metadata, returns 0. Some blocks may not support this and will default.
+---@return number @The metadata value, or 0 as fallback
+function LuaBlock:getData() end
+
+---Returns the position of this block as a table with x, y, and z.
+---@return table @A table with numeric fields 'x', 'y', and 'z'
 function LuaBlock:getPosition() end
 
 ---Gets the registry name of the block type.
@@ -481,14 +480,6 @@ function LuaBlock:isSolid() end
 
 ---Stops the event listener from receiving further events.
 function LuaEvent:disconnect() end
-
----Pauses script execution for the given number of seconds.
----@param seconds number
-function wait(seconds) end
-
----Pauses script execution for the given number of ticks (1 tick = 50 ms).
----@param ticks number
-function waitTicks(ticks) end
 
 ---@type LuaPlayer
 sender = nil

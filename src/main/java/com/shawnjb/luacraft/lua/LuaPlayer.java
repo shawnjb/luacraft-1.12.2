@@ -2,7 +2,6 @@ package com.shawnjb.luacraft.lua;
 
 import com.shawnjb.luacraft.docs.LuaDocRegistry;
 import com.shawnjb.luacraft.lua.api.LuaItemStack;
-import com.shawnjb.luacraft.lua.api.LuaVector3;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumHand;
@@ -296,8 +295,7 @@ public class LuaPlayer extends LuaEntity {
             @Override
             public LuaValue call() {
                 Vec3d eyePos = player.getPositionEyes(1.0F);
-                LuaTable table = LuaVector3.toLuaTable(eyePos.x, eyePos.y, eyePos.z);
-                return table;
+                return LuaUtils.makeXYZ(eyePos.x, eyePos.y, eyePos.z);
             }
         });
 
@@ -428,9 +426,9 @@ public class LuaPlayer extends LuaEntity {
 
         LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
                 "getPositionEyes",
-                "Returns the eye-level position of the player, used for accurate ray tracing or effects.",
+                "Gets the position of the player's eyes. Useful for raycasting or line-of-sight calculations.",
                 Arrays.asList(),
-                Arrays.asList(new LuaDocRegistry.Return("Vector3", "The position of the player’s eyes")),
+                Arrays.asList(new LuaDocRegistry.Return("table", "A table with numeric fields 'x', 'y', and 'z'")),
                 true));
 
         LuaDocRegistry.inheritMethods("LuaEntity", "LuaPlayer");

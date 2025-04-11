@@ -11,8 +11,9 @@ import org.luaj.vm2.lib.ZeroArgFunction;
 
 import com.shawnjb.luacraft.docs.LuaDocRegistry;
 import com.shawnjb.luacraft.lua.LuaEventManager;
+import com.shawnjb.luacraft.lua.LuaManager;
 import com.shawnjb.luacraft.lua.LuaPlayer;
-import com.shawnjb.luacraft.lua.api.LuaVector3;
+import com.shawnjb.luacraft.lua.LuaUtils;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
@@ -35,7 +36,21 @@ public class LuaMc extends LuaTable {
         set("getLuaJVersion", new GetLuaJVersionFunction());
         set("summonEntity", new SummonEntityFunction());
         set("createItemStack", new CreateItemStackFunction());
-        LuaVector3.registerGlobal(this);
+
+        set("getLoadedScriptCount", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                return LuaValue.valueOf(LuaManager.getLoadedScriptCount());
+            }
+        });
+
+        set("vector", new org.luaj.vm2.lib.ThreeArgFunction() {
+            @Override
+            public LuaValue call(LuaValue x, LuaValue y, LuaValue z) {
+                return LuaUtils.makeXYZ(x.checkdouble(), y.checkdouble(), z.checkdouble());
+            }
+        });
+
         if (sender != null) {
             set("sender", sender);
         }
@@ -139,7 +154,7 @@ public class LuaMc extends LuaTable {
             }
 
             World world = server.getWorld(0);
-            LuaVector3 vec = LuaVector3.fromLuaTable(posTable.checktable());
+            double[] coords = LuaUtils.unpackXYZ(posTable);
             ResourceLocation entityRes = new ResourceLocation(entityId.checkjstring());
 
             Entity entity = EntityList.createEntityByIDFromName(entityRes, world);
@@ -147,7 +162,7 @@ public class LuaMc extends LuaTable {
                 return LuaValue.error("Unknown entity ID: " + entityId.tojstring());
             }
 
-            entity.setPosition(vec.x, vec.y, vec.z);
+            entity.setPosition(coords[0], coords[1], coords[2]);
             world.spawnEntity(entity);
             return LuaValue.TRUE;
         }
@@ -155,6 +170,30 @@ public class LuaMc extends LuaTable {
 
     public static void registerDocs() {
         LuaDocRegistry.addGlobalClass("mc");
+
+        LuaDocRegistry.addFunction("mc", new LuaDocRegistry.FunctionDoc(
+                "getLoadedScriptCount",
+                "Returns the number of Lua scripts currently loaded.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("number", "The script count")),
+                false));
+
+        LuaDocRegistry.addFunction("mc", new LuaDocRegistry.FunctionDoc(
+                "sender",
+                "The player who triggered the command or event (if available).",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("LuaPlayer", "The sender player object or nil")),
+                false));
+
+        LuaDocRegistry.addFunction("mc", new LuaDocRegistry.FunctionDoc(
+                "vector",
+                "Creates a table with x, y, and z fields.",
+                Arrays.asList(
+                        new LuaDocRegistry.Param("x", "number", "The X coordinate"),
+                        new LuaDocRegistry.Param("y", "number", "The Y coordinate"),
+                        new LuaDocRegistry.Param("z", "number", "The Z coordinate")),
+                Arrays.asList(new LuaDocRegistry.Return("table", "A table with x, y, and z values")),
+                false));
 
         LuaDocRegistry.addFunction("mc", new LuaDocRegistry.FunctionDoc(
                 "broadcast",

@@ -1,7 +1,7 @@
 package com.shawnjb.luacraft.lua;
 
+import com.shawnjb.luacraft.LuaLogger;
 import com.shawnjb.luacraft.docs.LuaDocRegistry;
-import com.shawnjb.luacraft.lua.api.LuaVector3;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
@@ -22,6 +22,25 @@ public class LuaEntity extends LuaTable {
 
     public LuaEntity(Entity entity) {
         this.entity = entity;
+
+        set("getVelocity", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                return LuaUtils.makeXYZ(entity.motionX, entity.motionY, entity.motionZ);
+            }
+        });
+
+        set("setVelocity", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue arg) {
+                double[] coords = LuaUtils.unpackXYZ(arg);
+                entity.motionX = coords[0];
+                entity.motionY = coords[1];
+                entity.motionZ = coords[2];
+                entity.velocityChanged = true;
+                return LuaValue.NIL;
+            }
+        });
 
         set("getId", new ZeroArgFunction() {
             @Override
@@ -56,24 +75,26 @@ public class LuaEntity extends LuaTable {
             @Override
             public LuaValue call() {
                 if (entity instanceof EntityPlayer) {
-                    return new LuaVector3(((EntityPlayer) entity).posX, ((EntityPlayer) entity).posY,
-                            ((EntityPlayer) entity).posZ);
-                } else {
-                    BlockPos pos = entity.getPosition();
-                    LuaTable t = new LuaTable();
-                    t.set("x", LuaValue.valueOf(pos.getX()));
-                    t.set("y", LuaValue.valueOf(pos.getY()));
-                    t.set("z", LuaValue.valueOf(pos.getZ()));
-                    return t;
+                    Vec3d position = ((EntityPlayer) entity).getPositionVector();
+                    LuaTable posTable = LuaUtils.makeXYZ(position.x, position.y, position.z);
+                    LuaLogger.LOGGER.info("[LuaCraft] Returning position vector: x=" + position.x + ", y=" + position.y + ", z=" + position.z);
+                    return posTable;
+                } else if (entity != null) {
+                    Vec3d position = entity.getPositionVector();
+                    LuaTable posTable = LuaUtils.makeXYZ(position.x, position.y, position.z);
+                    LuaLogger.LOGGER.info("[LuaCraft] Returning position vector: x=" + position.x + ", y=" + position.y + ", z=" + position.z);
+                    return posTable;
                 }
+                return LuaValue.NIL; 
             }
         });
+        
 
         set("setPosition", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
-                LuaVector3 pos = LuaVector3.fromLuaTable(arg.checktable());
-                entity.setPositionAndUpdate(pos.x, pos.y, pos.z);
+                double[] coords = LuaUtils.unpackXYZ(arg);
+                entity.setPositionAndUpdate(coords[0], coords[1], coords[2]);
                 return LuaValue.NIL;
             }
         });
@@ -166,7 +187,7 @@ public class LuaEntity extends LuaTable {
             public LuaValue call() {
                 if (entity instanceof EntityLivingBase) {
                     Vec3d look = ((EntityLivingBase) entity).getLook(1.0F);
-                    return new LuaVector3(look.x, look.y, look.z);
+                    return LuaUtils.makeXYZ(look.x, look.y, look.z);
                 }
                 return LuaValue.NIL;
             }
@@ -199,6 +220,21 @@ public class LuaEntity extends LuaTable {
         LuaDocRegistry.addClass("LuaEntity");
 
         LuaDocRegistry.addFunction("LuaEntity", new LuaDocRegistry.FunctionDoc(
+                "getVelocity",
+                "Gets the current motion vector of the entity.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("table", "A table with numeric fields 'x', 'y', and 'z'")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaEntity", new LuaDocRegistry.FunctionDoc(
+                "setVelocity",
+                "Sets the entity's motion vector and marks it as changed for syncing.",
+                Arrays.asList(
+                        new LuaDocRegistry.Param("velocity", "table", "Table with numeric fields 'x', 'y', and 'z'")),
+                Arrays.asList(),
+                true));
+
+        LuaDocRegistry.addFunction("LuaEntity", new LuaDocRegistry.FunctionDoc(
                 "getId", "Returns the entity's internal ID.",
                 Arrays.asList(), Arrays.asList(new LuaDocRegistry.Return("number", "The entity ID")), true));
 
@@ -214,8 +250,12 @@ public class LuaEntity extends LuaTable {
                 "kill", "Instantly kills the entity.", Arrays.asList(), Arrays.asList(), true));
 
         LuaDocRegistry.addFunction("LuaEntity", new LuaDocRegistry.FunctionDoc(
-                "setPosition", "Sets the position of the entity.",
-                Arrays.asList(new LuaDocRegistry.Param("pos", "Vector3", "The new position")), Arrays.asList(), true));
+                "setPosition",
+                "Teleports the entity to a specific position. Accepts a table with x, y, and z fields.",
+                Arrays.asList(
+                        new LuaDocRegistry.Param("pos", "table", "A table with numeric fields 'x', 'y', and 'z'")),
+                Arrays.asList(),
+                true));
 
         LuaDocRegistry.addFunction("LuaEntity", new LuaDocRegistry.FunctionDoc(
                 "setFireTicks", "Sets the entity on fire for a specific number of ticks.",
@@ -227,9 +267,9 @@ public class LuaEntity extends LuaTable {
 
         LuaDocRegistry.addFunction("LuaEntity", new LuaDocRegistry.FunctionDoc(
                 "getPosition",
-                "Returns the current position of the entity. For players, returns a Vector3; for other entities, returns a table with x, y, and z fields.",
+                "Returns the current position of the entity. May include decimal precision for players, but block-aligned for mobs and other entities.",
                 Arrays.asList(),
-                Arrays.asList(new LuaDocRegistry.Return("Vector3|table", "The entity's position")),
+                Arrays.asList(new LuaDocRegistry.Return("table", "A table with numeric fields 'x', 'y', and 'z'")),
                 true));
 
         LuaDocRegistry.addFunction("LuaEntity", new LuaDocRegistry.FunctionDoc(
@@ -276,11 +316,10 @@ public class LuaEntity extends LuaTable {
 
         LuaDocRegistry.addFunction("LuaEntity", new LuaDocRegistry.FunctionDoc(
                 "getLookDirection",
-                "Returns a vector representing the direction the entity is looking. " +
-                        "If the entity is not a living entity, nil is returned.",
+                "Returns the direction the entity is currently looking as a normalized vector.",
                 Arrays.asList(),
-                Arrays.asList(new LuaDocRegistry.Return("Vector3|nil",
-                        "A vector representing the look direction, or nil if not available")),
+                Arrays.asList(new LuaDocRegistry.Return("table",
+                        "A normalized table with 'x', 'y', and 'z' fields, or nil if not applicable")),
                 true));
 
         LuaDocRegistry.addFunction("LuaEntity", new LuaDocRegistry.FunctionDoc(

@@ -2,7 +2,6 @@ package com.shawnjb.luacraft.lua;
 
 import com.shawnjb.luacraft.docs.LuaDocRegistry;
 import com.shawnjb.luacraft.lua.api.LuaMaterial;
-import com.shawnjb.luacraft.lua.api.LuaVector3;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
@@ -22,10 +21,41 @@ public class LuaBlock extends LuaTable {
         this.world = world;
         this.pos = pos;
 
+        set("getId", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                Block block = world.getBlockState(pos).getBlock();
+                int id = Block.getIdFromBlock(block);
+                return LuaValue.valueOf(id);
+            }
+        });
+
         set("getPosition", new ZeroArgFunction() {
             @Override
             public LuaValue call() {
-                return new LuaVector3(pos.getX(), pos.getY(), pos.getZ());
+                return LuaUtils.makeXYZ(pos.getX(), pos.getY(), pos.getZ());
+            }
+        });
+
+        set("getRelative", new org.luaj.vm2.lib.OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue direction) {
+                double[] offset = LuaUtils.unpackXYZ(direction);
+                BlockPos relative = pos.add(offset[0], offset[1], offset[2]);
+                return new LuaBlock(world, relative);
+            }
+        });
+
+        set("getData", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                IBlockState state = world.getBlockState(pos);
+                Block block = state.getBlock();
+                try {
+                    return LuaValue.valueOf(block.getMetaFromState(state));
+                } catch (IllegalArgumentException ignored) {
+                    return LuaValue.valueOf(0);
+                }
             }
         });
 
@@ -72,10 +102,32 @@ public class LuaBlock extends LuaTable {
         LuaDocRegistry.addClass("LuaBlock");
 
         LuaDocRegistry.addMethod("LuaBlock", new LuaDocRegistry.FunctionDoc(
-                "getPosition",
-                "Returns the position of the block as a Vector3.",
+                "getId",
+                "Returns the legacy numeric ID of the block.",
                 Arrays.asList(),
-                Arrays.asList(new LuaDocRegistry.Return("Vector3", "Block position")),
+                Arrays.asList(new LuaDocRegistry.Return("number", "The legacy block ID (e.g., 1 for stone)")),
+                true));
+
+        LuaDocRegistry.addMethod("LuaBlock", new LuaDocRegistry.FunctionDoc(
+                "getRelative",
+                "Returns the block relative to this one by offset. Accepts a table with x, y, and z fields.",
+                Arrays.asList(
+                        new LuaDocRegistry.Param("offset", "table", "A table with numeric fields 'x', 'y', and 'z'")),
+                Arrays.asList(new LuaDocRegistry.Return("LuaBlock", "The block at the offset position")),
+                true));
+
+        LuaDocRegistry.addMethod("LuaBlock", new LuaDocRegistry.FunctionDoc(
+                "getData",
+                "Returns the block's metadata value (damage/data). If the block has no metadata, returns 0. Some blocks may not support this and will default.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("number", "The metadata value, or 0 as fallback")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaBlock", new LuaDocRegistry.FunctionDoc(
+                "getPosition",
+                "Returns the position of this block as a table with x, y, and z.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("table", "A table with numeric fields 'x', 'y', and 'z'")),
                 true));
 
         LuaDocRegistry.addMethod("LuaBlock", new LuaDocRegistry.FunctionDoc(
