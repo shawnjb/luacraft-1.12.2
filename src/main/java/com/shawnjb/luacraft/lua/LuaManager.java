@@ -71,44 +71,6 @@ public class LuaManager {
         return scriptsFolder;
     }
 
-    public static void runScript(String code) {
-        if (globals == null) {
-            LuaLogger.LOGGER.error("[LuaCraft] LuaManager not initialized!");
-            return;
-        }
-
-        try {
-            LuaValue chunk = globals.load(code, "script");
-            chunk.call();
-        } catch (Exception e) {
-            LuaLogger.LOGGER.error("[LuaCraft] Lua error while running code:\n" + code);
-            e.printStackTrace();
-        }
-    }
-
-    public static void runScriptForPlayer(String scriptContent, EntityPlayerMP player) {
-        try {
-            Globals context = globals;
-            LuaMc mc = new LuaMc(new LuaPlayer(player));
-            context.set("mc", mc);
-            context.set("sender", new LuaPlayer(player));
-
-            LuaValue chunk = context.load(scriptContent, "inline");
-            LuaValue result = chunk.call();
-            LuaModule module = new LuaModule(result, player);
-            loadedScripts.add(module);
-
-            if (module.hasOnScriptLoaded()) {
-                module.onScriptLoaded(new LuaPlayer(player));
-            } else {
-                LuaLogger.LOGGER.warn("[LuaCraft] Script does not have an onScriptLoaded method.");
-            }
-
-        } catch (Exception e) {
-            LuaLogger.LOGGER.error("[LuaCraft] Error executing script for player", e);
-        }
-    }
-
     public static void loadScriptForPlayer(File file, EntityPlayerMP player) {
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             StringBuilder builder = new StringBuilder();
