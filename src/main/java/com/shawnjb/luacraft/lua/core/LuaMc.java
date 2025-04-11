@@ -246,8 +246,10 @@ public class LuaMc extends LuaTable {
                 "Summons an entity at a specific position.",
                 Arrays.asList(
                         new LuaDocRegistry.Param("entityId", "string", "The entity ID (e.g. 'minecraft:zombie')"),
-                        new LuaDocRegistry.Param("pos", "Vector3", "The spawn position")),
-                Arrays.asList(new LuaDocRegistry.Return("boolean", "True if the entity was spawned")), false));
+                        new LuaDocRegistry.Param("pos", "table",
+                                "The spawn position as a table containing x, y, and z coordinates")),
+                Arrays.asList(new LuaDocRegistry.Return("boolean", "True if the entity was spawned")),
+                false));
 
         LuaDocRegistry.addFunction("mc", new LuaDocRegistry.FunctionDoc(
                 "createItemStack",

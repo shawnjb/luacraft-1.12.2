@@ -74,7 +74,7 @@ function mc.getLuaJVersion() end
 
 ---Summons an entity at a specific position.
 ---@param entityId string
----@param pos Vector3
+---@param pos table
 ---@return boolean @True if the entity was spawned
 function mc.summonEntity(entityId, pos) end
 
