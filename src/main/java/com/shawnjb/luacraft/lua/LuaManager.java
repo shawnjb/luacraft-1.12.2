@@ -7,9 +7,6 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.World;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.Varargs;
-import org.luaj.vm2.lib.OneArgFunction;
-import org.luaj.vm2.lib.VarArgFunction;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
 import java.io.*;
@@ -26,18 +23,15 @@ public class LuaManager {
     private static Globals globals;
     private static File scriptsFolder;
     private static File autorunFolder;
-
-    // Mapping of world instances to Lua environments (active scripts for each world)
-    private static final List<World> activeWorlds = new ArrayList<>();
+    private static final List<Thread> activeThreads = new ArrayList<>();
+    private static final CustomDebugLib debugLib = new CustomDebugLib();
 
     public static File getScriptsFolder() {
         return scriptsFolder;
     }
 
     public static void init(File configDir) {
-        // Initialize Lua Globals here
         resetGlobals();
-
         scriptsFolder = new File(configDir, "luacraft/scripts");
         autorunFolder = new File(scriptsFolder, "autorun");
 
@@ -54,35 +48,11 @@ public class LuaManager {
         runAutorunScripts();
     }
 
-    // Reset Lua Globals to a fresh state
     public static void resetGlobals() {
         globals = JsePlatform.standardGlobals();
-        // Reinitialize necessary functions after resetting globals
-        globals.set("print", new VarArgFunction() {
-            @Override
-            public Varargs invoke(Varargs args) {
-                StringBuilder output = new StringBuilder();
-                for (int i = 1; i <= args.narg(); i++) {
-                    if (i > 1) output.append("\t");
-                    output.append(args.arg(i).tojstring());
-                }
-                LuaLogger.LOGGER.info(output.toString());
-                return LuaValue.NIL;
-            }
-        });
-
-        globals.set("wait", new OneArgFunction() {
-            @Override
-            public LuaValue call(LuaValue arg) {
-                double seconds = arg.checkdouble();
-                try {
-                    Thread.sleep((long) (seconds * 1000));
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-                return LuaValue.NIL;
-            }
-        });
+        globals.set("mc", new LuaMc(null));
+        globals.set("sender", LuaValue.NIL);
+        globals.set("debug", debugLib);
     }
 
     private static void copyEmbeddedScriptFolder(String resourcePath, File destination) {
@@ -172,7 +142,9 @@ public class LuaManager {
 
     public static void runScript(String code, EntityPlayerMP sender) {
         Globals context = globals;
-        context.set("mc", new LuaMc(sender != null ? new LuaPlayer(sender) : null));
+        LuaMc mc = new LuaMc(new LuaPlayer(sender));
+        context.set("mc", mc);
+        context.set("sender", new LuaPlayer(sender));
 
         try {
             LuaValue chunk = context.load(code, "inline");
@@ -192,10 +164,17 @@ public class LuaManager {
             }
 
             Globals context = globals;
-            context.set("mc", new LuaMc(sender != null ? new LuaPlayer(sender) : null));
+            LuaMc mc = new LuaMc(new LuaPlayer(sender));
+            context.set("mc", mc);
+            context.set("sender", new LuaPlayer(sender));
 
             LuaValue chunk = context.load(builder.toString(), file.getName());
-            chunk.call();
+
+            Thread thread = new Thread(() -> {
+                chunk.call();
+            });
+            activeThreads.add(thread);
+            thread.start();
         } catch (IOException e) {
             LuaLogger.LOGGER.error("[LuaCraft] Failed to run script '" + file.getName() + "': " + e.getMessage());
         } catch (Exception e) {
@@ -203,17 +182,24 @@ public class LuaManager {
         }
     }
 
-    public static void unloadPlayerScripts(EntityPlayerMP player) {
-        // Unload player-specific Lua context
-        LuaLogger.LOGGER.info("[LuaCraft] Unloaded Lua scripts for player: " + player.getName());
+    public static void stopAllRunningThreads() {
+        debugLib.interrupted = true;
+        for (Thread thread : activeThreads) {
+            thread.interrupt();
+        }
+        activeThreads.clear();
+        LuaLogger.LOGGER.info("[LuaCraft] Stopped all running Lua threads.");
     }
 
-    // New method to unload all Lua scripts tied to a world
+    public static void resetLuaState() {
+        stopAllRunningThreads();
+        resetGlobals();
+        LuaLogger.LOGGER.info("[LuaCraft] Lua state has been reset.");
+    }
+
     public static void unloadWorldScripts(World world) {
-        // Here you can iterate through all active scripts related to this world and unload them
-        // Example: remove any player-specific contexts or unload global scripts
-        activeWorlds.remove(world);
         LuaLogger.LOGGER.info("[LuaCraft] Unloaded Lua scripts for world: " + world.getWorldInfo().getWorldName());
+        stopAllRunningThreads();
     }
 
     public static Globals getGlobals() {

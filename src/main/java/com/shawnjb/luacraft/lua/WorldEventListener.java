@@ -12,13 +12,13 @@ public class WorldEventListener {
     public static void onWorldLoad(WorldEvent.Load event) {
         World world = event.getWorld();
         LuaLogger.LOGGER.info("[LuaCraft] World loaded: " + world.getWorldInfo().getWorldName());
-        LuaManager.resetGlobals();
+        LuaManager.resetLuaState();
     }
 
     @net.minecraftforge.fml.common.eventhandler.SubscribeEvent
     public static void onWorldUnload(WorldEvent.Unload event) {
         World world = event.getWorld();
         LuaLogger.LOGGER.info("[LuaCraft] World unloaded: " + world.getWorldInfo().getWorldName());
-        LuaManager.unloadWorldScripts(world);
+        LuaManager.stopAllRunningThreads();
     }
 }

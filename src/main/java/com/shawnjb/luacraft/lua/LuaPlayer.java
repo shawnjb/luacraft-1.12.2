@@ -200,7 +200,7 @@ public class LuaPlayer extends LuaEntity {
                     } else if (v.isnumber()) {
                         obj.append(v.tojstring());
                     } else if (v.istable()) {
-                        obj.append(buildJsonObject((LuaTable) v)); // nested object
+                        obj.append(buildJsonObject((LuaTable) v));
                     } else {
                         obj.append("\"").append(escape(v.tojstring())).append("\"");
                     }
