@@ -8,42 +8,41 @@ This mapping 'stable_39' was designed for MC 1.12! Use at your own peril.
 > Task :compileApiJava NO-SOURCE
 > Task :processApiResources NO-SOURCE
 > Task :apiClasses UP-TO-DATE
-> Task :sourceMainJava UP-TO-DATE
-> Task :compileJava UP-TO-DATE
-> Task :processResources UP-TO-DATE
-> Task :classes UP-TO-DATE
+> Task :sourceMainJava
+> Task :compileJava
+> Task :processResources
+> Task :classes
 
 > Task :generateLuaDocs
 [LuaCraft] Generating LuaCATS documentation (docs.lua)...
-[21:11:56] [main/INFO] [LuaCraft]: [LuaDocGenerator] Running LuaDocBootstrap...
-[21:11:56] [main/INFO] [LuaCraft]: Inherited 16 methods from LuaEntity to LuaPlayer
-[21:11:56] [main/INFO] [LuaCraft]: [LuaDocGenerator] Classes registered: 9
-[21:11:56] [main/INFO] [LuaCraft]: [LuaDocGenerator] Functions registered: 108
-[21:11:56] [main/INFO] [LuaCraft]: [LuaDocGenerator] docs.lua generated at: /home/shawnjb/luacraft/src/main/resources/docs/docs.lua
+[23:33:55] [main/INFO] [LuaCraft]: [LuaDocGenerator] Running LuaDocBootstrap...
+[23:33:55] [main/INFO] [LuaCraft]: Inherited 16 methods from LuaEntity to LuaPlayer
+[23:33:55] [main/INFO] [LuaCraft]: [LuaDocGenerator] Classes registered: 9
+[23:33:55] [main/INFO] [LuaCraft]: [LuaDocGenerator] Functions registered: 108
+[23:33:55] [main/INFO] [LuaCraft]: [LuaDocGenerator] docs.lua generated at: /home/shawnjb/luacraft/src/main/resources/docs/docs.lua
 
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 5.0.
 Use '--warning-mode all' to show the individual deprecation warnings.
 See https://docs.gradle.org/4.9/userguide/command_line_interface.html#sec:command_line_warnings
 
-BUILD SUCCESSFUL in 1s
-7 actionable tasks: 1 executed, 6 up-to-date
+BUILD SUCCESSFUL in 2s
+7 actionable tasks: 4 executed, 3 up-to-date
 
 > Configure project :
 This mapping 'stable_39' was designed for MC 1.12! Use at your own peril.
 
-> Task :clean
 > Task :deobfCompileDummyTask UP-TO-DATE
 > Task :deobfProvidedDummyTask UP-TO-DATE
-> Task :sourceApiJava
+> Task :sourceApiJava UP-TO-DATE
 > Task :compileApiJava NO-SOURCE
 > Task :processApiResources NO-SOURCE
 > Task :apiClasses UP-TO-DATE
-> Task :sourceMainJava
-> Task :compileJava
-> Task :processResources
-> Task :classes
+> Task :sourceMainJava UP-TO-DATE
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
 > Task :jar
-> Task :sourceTestJava
+> Task :sourceTestJava UP-TO-DATE
 > Task :compileTestJava NO-SOURCE
 > Task :processTestResources NO-SOURCE
 > Task :testClasses UP-TO-DATE
@@ -72,4 +71,4 @@ Use '--warning-mode all' to show the individual deprecation warnings.
 See https://docs.gradle.org/4.9/userguide/command_line_interface.html#sec:command_line_warnings
 
 BUILD SUCCESSFUL in 2s
-16 actionable tasks: 13 executed, 3 up-to-date
+15 actionable tasks: 7 executed, 8 up-to-date
