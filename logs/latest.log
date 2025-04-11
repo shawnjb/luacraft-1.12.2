@@ -1,5 +1,0 @@
-[07:40:06] [main/INFO] [LuaCraft]: [LuaDocGenerator] Running LuaDocBootstrap...
-[07:40:06] [main/INFO] [LuaCraft]: Inherited 18 methods from LuaEntity to LuaPlayer
-[07:40:06] [main/INFO] [LuaCraft]: [LuaDocGenerator] Classes registered: 8
-[07:40:06] [main/INFO] [LuaCraft]: [LuaDocGenerator] Functions registered: 108
-[07:40:06] [main/INFO] [LuaCraft]: [LuaDocGenerator] docs.lua generated at: /home/shawnjb/luacraft/src/main/resources/docs/docs.lua

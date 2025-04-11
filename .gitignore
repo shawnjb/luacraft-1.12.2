@@ -16,10 +16,11 @@ out
 # gradle
 build
 .gradle
+gradle/
 
 # other
 eclipse
 run
 *.log
-logs
+logs/
 .vscode/
