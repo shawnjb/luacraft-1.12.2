@@ -187,6 +187,15 @@ function LuaPlayer:getItemInHand() end
 ---@return LuaItemStack|nil @The item in the slot or nil
 function LuaPlayer:getInventoryItem(index) end
 
+---Returns the block the player is currently looking at, up to a certain distance.
+---@param distance number
+---@return LuaBlock? @The block being looked at or nil if none
+function LuaPlayer:getTargetBlock(distance) end
+
+---Returns the eye-level position of the player, used for accurate ray tracing or effects.
+---@return Vector3 @The position of the player’s eyes
+function LuaPlayer:getPositionEyes() end
+
 ---Returns the entity's internal ID. (Inherited from LuaEntity)
 ---@return number @The entity ID
 function LuaPlayer:getId() end

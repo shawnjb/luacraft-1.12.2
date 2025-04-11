@@ -85,6 +85,14 @@ public class LuaVector3 extends LuaTable {
         });
     }
 
+    public static LuaTable toLuaTable(double x, double y, double z) {
+        LuaTable table = new LuaTable();
+        table.set("x", LuaValue.valueOf(x));
+        table.set("y", LuaValue.valueOf(y));
+        table.set("z", LuaValue.valueOf(z));
+        return table;
+    }    
+
     public static class NewVectorFunction extends ThreeArgFunction {
         @Override
         public LuaValue call(LuaValue lx, LuaValue ly, LuaValue lz) {

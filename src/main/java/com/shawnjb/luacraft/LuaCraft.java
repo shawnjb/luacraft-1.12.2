@@ -2,7 +2,6 @@ package com.shawnjb.luacraft;
 
 import com.shawnjb.luacraft.commands.ListScriptsCommand;
 import com.shawnjb.luacraft.commands.LoadScriptCommand;
-import com.shawnjb.luacraft.commands.RunScriptCommand;
 import com.shawnjb.luacraft.docs.LuaDocBootstrap;
 import com.shawnjb.luacraft.lua.LuaManager;
 
@@ -42,7 +41,6 @@ public class LuaCraft {
 
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
-        event.registerServerCommand(new RunScriptCommand());
         event.registerServerCommand(new LoadScriptCommand());
         event.registerServerCommand(new ListScriptsCommand());
     }

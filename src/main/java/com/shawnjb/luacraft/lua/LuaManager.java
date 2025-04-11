@@ -37,7 +37,7 @@ public class LuaManager {
     }
 
     private static void copyDefaultScripts() {
-        String[] defaultScripts = {"example.lua"};
+        String[] defaultScripts = {"example.lua", "chatCommands.lua"};
 
         for (String filename : defaultScripts) {
             try (InputStream in = LuaManager.class.getResourceAsStream("/scripts/" + filename)) {

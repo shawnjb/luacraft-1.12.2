@@ -2,11 +2,16 @@ package com.shawnjb.luacraft.lua;
 
 import com.shawnjb.luacraft.docs.LuaDocRegistry;
 import com.shawnjb.luacraft.lua.api.LuaItemStack;
+import com.shawnjb.luacraft.lua.api.LuaVector3;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumHand;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
@@ -286,6 +291,35 @@ public class LuaPlayer extends LuaEntity {
                 return new LuaItemStack(stack);
             }
         });
+
+        set("getPositionEyes", new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                Vec3d eyePos = player.getPositionEyes(1.0F);
+                LuaTable table = LuaVector3.toLuaTable(eyePos.x, eyePos.y, eyePos.z);
+                return table;
+            }
+        });
+
+        set("getTargetBlock", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue arg) {
+                int maxDistance = arg.optint(20); // default to 20 blocks
+
+                Vec3d eyePos = player.getPositionEyes(1.0F);
+                Vec3d lookVec = player.getLook(1.0F);
+                Vec3d reachVec = eyePos.add(lookVec.x * maxDistance, lookVec.y * maxDistance, lookVec.z * maxDistance);
+
+                RayTraceResult result = player.world.rayTraceBlocks(eyePos, reachVec, false, false, false);
+
+                if (result != null && result.typeOfHit == RayTraceResult.Type.BLOCK) {
+                    BlockPos pos = result.getBlockPos();
+                    return LuaValue.userdataOf(new LuaBlock(player.world, pos));
+                }
+
+                return LuaValue.NIL;
+            }
+        });
     }
 
     public EntityPlayer getHandle() {
@@ -382,6 +416,21 @@ public class LuaPlayer extends LuaEntity {
                 "Returns the item in the player's inventory at the given slot index as a LuaItemStack, or nil if empty.",
                 Arrays.asList(new LuaDocRegistry.Param("index", "number", "The inventory slot index (0-based)")),
                 Arrays.asList(new LuaDocRegistry.Return("LuaItemStack|nil", "The item in the slot or nil")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
+                "getTargetBlock",
+                "Returns the block the player is currently looking at, up to a certain distance.",
+                Arrays.asList(new LuaDocRegistry.Param("distance", "number",
+                        "Max distance to scan for a block (default 20)")),
+                Arrays.asList(new LuaDocRegistry.Return("LuaBlock?", "The block being looked at or nil if none")),
+                true));
+
+        LuaDocRegistry.addFunction("LuaPlayer", new LuaDocRegistry.FunctionDoc(
+                "getPositionEyes",
+                "Returns the eye-level position of the player, used for accurate ray tracing or effects.",
+                Arrays.asList(),
+                Arrays.asList(new LuaDocRegistry.Return("Vector3", "The position of the player’s eyes")),
                 true));
 
         LuaDocRegistry.inheritMethods("LuaEntity", "LuaPlayer");

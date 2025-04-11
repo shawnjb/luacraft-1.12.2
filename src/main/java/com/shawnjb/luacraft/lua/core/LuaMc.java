@@ -119,7 +119,7 @@ public class LuaMc extends LuaTable {
     private static class GetVersionFunction extends ZeroArgFunction {
         @Override
         public LuaValue call() {
-            return LuaValue.valueOf("1.0.0-alpha");
+            return LuaValue.valueOf("1.0.0");
         }
     }
 

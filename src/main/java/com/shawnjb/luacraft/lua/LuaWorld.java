@@ -12,6 +12,7 @@ import com.shawnjb.luacraft.lua.api.LuaVector3;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.effect.EntityLightningBolt;
+import net.minecraft.entity.item.EntityTNTPrimed;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -128,21 +129,32 @@ public class LuaWorld extends LuaTable {
         
                     if (arg instanceof LuaVector3) {
                         vec = (LuaVector3) arg;
+        
                     } else if (arg.istable()) {
-                        vec = LuaVector3.fromLuaTable(arg.checktable());
+                        LuaTable table = arg.checktable();
+                        LuaValue x = table.get("x");
+                        LuaValue y = table.get("y");
+                        LuaValue z = table.get("z");
+        
+                        if (!x.isnumber() || !y.isnumber() || !z.isnumber()) {
+                            return LuaValue.error("Vector3 table must contain numeric fields 'x', 'y', and 'z'");
+                        }
+        
+                        vec = new LuaVector3(x.todouble(), y.todouble(), z.todouble());
+        
                     } else {
                         return LuaValue.error("Expected Vector3 table or LuaVector3");
                     }
         
-                    world.createExplosion(null, vec.x, vec.y, vec.z, 4.0F, true);
+                    world.spawnEntity(new EntityTNTPrimed(world, vec.x, vec.y, vec.z, null));
                 } catch (Exception e) {
                     return LuaValue.error("Invalid Vector3: " + e.getMessage());
                 }
         
                 return LuaValue.NIL;
             }
-        });
-        
+        });        
+
         set("getBlockAt", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue arg) {
